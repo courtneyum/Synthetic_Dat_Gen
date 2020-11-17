@@ -2,25 +2,27 @@
 rng(0);
 par = setup;
 load(par.EVD.filename);
-occupied = zeros(par.N, 1);
+occupied = false(par.N, 1);
 % trans_mat_cardIn_new = zeros(size(trans_mat_cardIn));
 % trans_mat_cardOut_new = zeros(size(trans_mat_cardOut));
 
 varNames = EVD.Properties.VariableNames(1:8);
-data = table([], [], [], [], [], [], [], [], 'VariableNames', varNames);
+par.varNames = varNames;
+data = table([], [], [], [], [], [], [], [], 'VariableNames', par.varNames);
 
 [data, occupied] = initializeProcess(par, data, occupied);
 
 %Begin generating data
 num_iters = par.num_iters;
 times = zeros(num_iters, par.J);
+playerLeft = false(par.J, 1);
 for i=1:num_iters
     % Reset player pool
     player_pool = 1:par.J; player_pool = player_pool(:);
     
     for j=1:par.J
         tic;
-        playerLeft = false;
+        %playerLeft = false;
         
         % Select a player from the pool
         k = randi(length(player_pool));
@@ -28,10 +30,33 @@ for i=1:num_iters
         player_pool = setdiff(player_pool, player_pool(k));
         
         % Get current state of player
-        prev_index = find(data.patronID == player, 1, 'last');
-        curr_machineNumber = data.machineNumber(prev_index);
-        curr_eventCode = data.eventCode(prev_index);
-        curr_eventID = par.eventID_lookupTable(par.uniqueEventCodes == curr_eventCode, par.uniqueMachineNumbers == curr_machineNumber);
+        if ~playerLeft(player == par.uniquePlayers)
+            prev_index = find(data.patronID == player, 1, 'last');
+            curr_machineNumber = data.machineNumber(prev_index);
+            curr_eventCode = data.eventCode(prev_index);
+            curr_eventID = par.eventID_lookupTable(par.uniqueEventCodes == curr_eventCode, par.uniqueMachineNumbers == curr_machineNumber);
+        else
+            % Choose unoccupied first machine from firstMachines
+            % distribution, effectively resetting the player. hopefully
+            % will prevent the drop off in events/day and players/day
+            machineChoices = setdiff(par.firstMachines, par.uniqueMachineNumbers(occupied));
+            curr_machineNumber = machineChoices(randi(length(machineChoices)));
+            curr_eventCode = par.initEventCode;
+            
+            prev_index = find(data.patronID == player, 1, 'last');
+            prev_machineNumber = data.machineNumber(prev_index);
+            prev_eventCode = data.eventCode(prev_index);
+            prev_eventID = par.eventID_lookupTable(prev_eventCode == par.uniqueEventCodes, prev_machineNumber == par.uniqueMachineNumbers);
+            curr_eventID = par.eventID_lookupTable(curr_eventCode == par.uniqueEventCodes, curr_machineNumber == par.uniqueMachineNumbers);
+            
+            playerLeft(player == par.uniquePlayers) = false;
+            occupied(par.uniqueMachineNubers == currMachineNumber) = true;
+            
+            dataRecord = makeDataRecord(prev_eventID, curr_eventID, e, n, player, par);
+            
+            % Add the event to the data
+            data = [data; dataRecord];
+        end
         
         % Did we last see a card in or card out event for this player
         cardIn_index = find(data.patronID == player & data.eventCode == 901, 1, 'last');
@@ -55,7 +80,7 @@ for i=1:num_iters
         end
         
         if isempty(possibleTransitions)
-            playerLeft = true;
+            playerLeft(player == par.uniquePlayers) = true;
             occ = false;
         end
         
@@ -87,41 +112,21 @@ for i=1:num_iters
             if isempty(possibleTransitions)
                 % If there are no machines the player wants to play, they
                 % leave
-                playerLeft = true;
+                playerLeft(player == par.uniquePlayers) = true;
                 break;
             end
         end
         
         % Update occupied machines
         occupied(par.uniqueMachineNumbers == curr_machineNumber) = false;
-        if playerLeft
+        if playerLeft(player == par.uniquePlayers)
             continue;
         end
         
         occupied(n) = true;
         
-        % Draw accompanying info
-        index = par.delta.key(:,1) == curr_eventID & par.delta.key(:,2) == next_eventID;
-        
-        choices = par.delta.CI{index};
-        k = randi(length(choices));
-        CI = choices(k);
-        
-        choices = par.delta.CO{index};
-        k = randi(length(choices));
-        CO = choices(k);
-        
-        choices = par.delta.GP{index};
-        k = randi(length(choices));
-        GP = choices(k);
-        
-        choices = par.delta.t{index};
-        k = randi(length(choices));
-        t = choices(k);
-        
-        % Add to data
-        data_ij = table(par.uniqueMachineNumbers(n), par.uniqueEventCodes(e), player, CI, CO, GP, datetime(0, 1, 1, 0, 0, 0), t, 'VariableNames', varNames);
-        data = [data; data_ij];
+        dataRecord = makeDataRecord(curr_eventID, next_eventID, e, n, player, par);
+        data = [data; dataRecord];
         times(i,j) = toc;
     end
 end
@@ -155,7 +160,7 @@ function par = setup
     par.J = length(par.uniquePlayers);
     par.initEventCode = 901;
     par.startTime = datenum(2020, 6, 22, 0, 0, 0);
-    par.num_iters = 10000;
+    par.num_iters = 1e3;
     par.J = 700;
     par.EVD.filename = 'K:\My Drive\School\Thesis\Data Anonymization\Data\EVD_datGen.mat';
 end
