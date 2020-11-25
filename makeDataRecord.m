@@ -1,6 +1,7 @@
 function dataRecord = makeDataRecord(curr_eventID, next_eventID, e, n, player, par)
     % Draw accompanying info, choose as a quadruple rather than
     % independently to account for correlation
+    
     index = par.delta.key(:,1) == curr_eventID & par.delta.key(:,2) == next_eventID;
     
     choices = par.delta.CI{index};
