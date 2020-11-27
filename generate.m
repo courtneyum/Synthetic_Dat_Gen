@@ -162,8 +162,6 @@ for j=1:par.J
     end
     data(data.patronID == player, :) = data_j;
 end
-data.numericTime = data.numericTime/(24*60*60) + par.startTime;
-data.time = datetime(data.numericTime, 'ConvertFrom','datenum');
 
 % Make meters cumulative
 data = sortrows(data, [1,8]);
@@ -174,9 +172,11 @@ for i=1:length(machineNumbers)
     data.CO_meter(index) = cumsum1(data.CO_meter(index));
     data.games_meter(index) = cumsum1(data.games_meter(index));
 end
+data.numericTime = data.numericTime/(24*60*60) + par.startTime;
+data.time = datetime(data.numericTime, 'ConvertFrom','datenum');
 
-function par = setup
-    load('K:\My Drive\School\Thesis\Data Anonymization\Data\par.mat');
+save('Data\EVD_genNew', 'data');
+writetable(data, 'Data\EVD_genNew.csv');
     par.N = length(par.uniqueMachineNumbers);
     par.E = length(par.uniqueEventCodes);
     par.J = length(par.uniquePlayers);
