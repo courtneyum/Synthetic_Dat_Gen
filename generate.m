@@ -3,9 +3,7 @@ rng(0);
 par = setup;
 load(par.EVD.filename);
 occupied = false(par.N, 1);
-player_pool_all = par.uniquePlayers(1:par.J);
-% trans_mat_cardIn_new = zeros(size(trans_mat_cardIn));
-% trans_mat_cardOut_new = zeros(size(trans_mat_cardOut));
+par.players = par.uniquePlayers(1:par.J);
 
 varNames = EVD.Properties.VariableNames(1:8);
 par.varNames = varNames;
@@ -19,7 +17,7 @@ times = zeros(num_iters, par.J);
 playerLeft = false(par.J, 1);
 for i=1:num_iters
     % Reset player pool
-    player_pool = player_pool_all;
+    player_pool = par.players;
     
     for j=1:par.J
         tic;
@@ -97,32 +95,16 @@ for i=1:num_iters
             possibleTransitions = par.trans_mat.cardOut(curr_eventID == eventIDs, trans_index);
         end
         
-%         if isempty(possibleTransitions)
-%             playerLeft(player == player_pool_all) = true;
-%             occ = false;
-%         end
-        
         while ~isempty(possibleTransitions) && occ
             num = rand;
             cumDist = cumsum1(possibleTransitions);
             k = find(cumDist > num, 1);
-%             for k=1:length(possibleTransitions)
-%                 cumsum = cumsum + possibleTransitions(k);
-%                 if cumsum > num
-%                     break;
-%                 end
-%             end
             next_eventID = eventIDs(trans_index(k));
             [e, n] = ind2sub(size(par.eventID_lookupTable), next_eventID);
 
             % Check if already occupied
             if par.uniqueMachineNumbers(n) == curr_machineNumber || ~occupied(n)
                 occ = false;
-%                 if cardIn
-%                     trans_mat_cardIn_new(curr_eventID, next_eventID) = trans_mat_cardIn_new(curr_eventID, next_eventID) + 1;
-%                 else
-%                     trans_mat_cardOut_new(curr_eventID, next_eventID) = trans_mat_cardOut_new(curr_eventID, next_eventID) + 1;
-%                 end
             else
                 possibleTransitions = possibleTransitions([1:k-1, k+1:end]);
                 trans_index = trans_index([1:k-1, k+1:end]);
@@ -133,15 +115,15 @@ for i=1:num_iters
         if isempty(possibleTransitions)
             % If there are no machines the player wants to play, they
             % leave
-            playerLeft(player == player_pool_all) = true;
+            playerLeft(player == par.players) = true;
         end
         
         % Update occupied machines
         occupied(par.uniqueMachineNumbers == curr_machineNumber) = false;
         
-        if playerLeft(player == player_pool_all)
-            playerLeft(player == player_pool_all) = false;
-            [data, player_pool_all, occupied] = makePlayerLeave(data, player_pool_all, occupied, player, par);
+        if playerLeft(player == par.players)
+            playerLeft(player == par.players) = false;
+            [data, par.players, occupied] = makePlayerLeave(data, par.players, occupied, player, par);
             continue;
         end
         
@@ -164,7 +146,7 @@ for j=1:par.J
 end
 
 % Make meters cumulative
-data = sortrows(data, [1,8]);
+data = sortrows(data, [3,8]);
 machineNumbers = unique(data.machineNumber);
 for i=1:length(machineNumbers)
     index = data.machineNumber == machineNumbers(i);
@@ -177,12 +159,16 @@ data.time = datetime(data.numericTime, 'ConvertFrom','datenum');
 
 save('Data\EVD_genNew', 'data');
 writetable(data, 'Data\EVD_genNew.csv');
+
+function par = setup
+    load('Data\par.mat');
     par.N = length(par.uniqueMachineNumbers);
     par.E = length(par.uniqueEventCodes);
     par.J = length(par.uniquePlayers);
     par.initEventCode = 901;
     par.startTime = datenum(2020, 6, 22, 0, 0, 0);
     par.num_iters = 1e2;
-    par.J = 700;
+    par.J = 10;
+    par.timeout = 2/24; % 2 hr timeout
     par.EVD.filename = 'K:\My Drive\School\Thesis\Data Anonymization\Data\EVD_datGen.mat';
 end

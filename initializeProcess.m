@@ -1,6 +1,6 @@
 function [data, occupied] = initializeProcess(par, data, occupied)
     choices = par.firstMachines;
-    player_pool = par.uniquePlayers(1:par.J);
+    player_pool = par.players;
     for j=1:par.J
         % Select a player from the pool
         k = randi(length(player_pool));
