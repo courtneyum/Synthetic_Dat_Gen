@@ -51,6 +51,12 @@ EVD.eventID = eventID;
 par.eventID_lookupTable = eventID_lookupTable;
 clear('eventID');
 
+par.N = N;
+par.E = E;
+par.uniqueMachineNumbers = uniqueMachineNumbers;
+par.uniqueEventCodes = uniqueEventCodes;
+par.eventID_lookupTable = eventID_lookupTable;
+
 
 
 % Times in most datasets are only precise down to the second. 
@@ -75,8 +81,8 @@ delta_CI = zeros(size(EVD.machineNumber));
 delta_CO = zeros(size(EVD.machineNumber));
 delta_GP = zeros(size(EVD.machineNumber));
 delta_t = zeros(size(EVD.machineNumber));
-for n=1:N
-    EVD_index = EVD.machineNumber == uniqueMachineNumbers(n);
+for n=1:par.N
+    EVD_index = EVD.machineNumber == par.uniqueMachineNumbers(n);
     EVD_n = EVD(EVD_index, :);
     EVD_n = sortrows(EVD_n, 'numericTime');
     delta_CI(EVD_index) = [NaN; EVD_n.CI_meter(2:end) - EVD_n.CI_meter(1:end-1)];
@@ -125,7 +131,8 @@ delta.CI = {};
 delta.CO = {};
 delta.GP = {};
 delta.t = {};
-firstMachines = [];
+firstMachines = zeros(par.N, 1);
+players = zeros(J, 1);
 for j=1:J
     EVD_index = EVD.patronID == uniquePlayers(j);
     EVD_j = EVD(EVD_index, :);
@@ -134,7 +141,9 @@ for j=1:J
         disp(['Ignoring player ', num2str(uniquePlayers(j)), ' at j=', num2str(j)]);
         continue;
     end
-    firstMachines = [firstMachines; EVD_j.machineNumber(1)];
+    %firstMachines = [firstMachines; EVD_j.machineNumber(1)];
+    firstMachines(par.uniqueMachineNumbers == EVD_j.machineNumber(1)) = firstMachines(par.uniqueMachineNumbers == EVD_j.machineNumber(1)) + 1;
+    players(j) = sum(EVD_j.patronID == uniquePlayers(j));
     CI_j = EVD_j.delta_CI;
     CO_j = EVD_j.delta_CO;
     GP_j = EVD_j.delta_GP;
@@ -157,17 +166,22 @@ for j=1:J
     end
 end
 
+par.J = J;
+par.uniquePlayers = uniquePlayers;
+par.players = players/sum(players);
+par.firstMachines = firstMachines/sum(firstMachines);
+
 
 
 % This next section consists of the next step in building the transition matrices. 
 % Here, the occupancy of each machine is taken into account.
 
 load('K:\My Drive\School\Thesis\Data Anonymization\Data\sessionData-AcresNew.mat');
-timeAlive = zeros(size(uniqueMachineNumbers));
-timeOccupied = zeros(size(uniqueMachineNumbers));
-for i=1:length(uniqueMachineNumbers)
-    session_index = sessions.machineNumber == uniqueMachineNumbers(i);
-    EVD_index = EVD.machineNumber == uniqueMachineNumbers(i);
+timeAlive = zeros(size(par.uniqueMachineNumbers));
+timeOccupied = zeros(size(par.uniqueMachineNumbers));
+for i=1:length(par.uniqueMachineNumbers)
+    session_index = sessions.machineNumber == par.uniqueMachineNumbers(i);
+    EVD_index = EVD.machineNumber == par.uniqueMachineNumbers(i);
     if ~any(session_index)
         timeOccupied(i) = 0;
     else
@@ -211,12 +225,7 @@ par.totalTransitions.cardIn = sum(trans_mat_cardIn, 2, 'omitnan');
 par.totalTransitions.cardOut = sum(trans_mat_cardOut, 2, 'omitnan');
 par.trans_mat.cardIn = sparse(i_in, j_in, s_in./par.totalTransitions.cardIn(i_in), N*E, N*E);
 par.trans_mat.cardOut = sparse(i_out, j_out, s_out./par.totalTransitions.cardOut(i_out), N*E, N*E);
-par.firstMachines = firstMachines;
 par.delta = delta;
-
-par.uniqueMachineNumbers = uniqueMachineNumbers;
-par.uniqueEventCodes = uniqueEventCodes;
-par.uniquePlayers = uniquePlayers;
 save('K:\My Drive\School\Thesis\Data Anonymization\Data\par.mat', 'par');
 
 
