@@ -3,4 +3,6 @@
 *.mat
 *.fig
 *.png
+*.mlx
+scratchPad.m
 Session Converter\

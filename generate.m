@@ -3,7 +3,8 @@ rng(0);
 par = setup;
 load(par.EVD.filename);
 occupied = false(par.N, 1);
-par.players = par.uniquePlayers(1:par.J);
+par.playerIndex = 1:par.J;
+par.players = par.uniquePlayers(par.playerIndex);
 
 varNames = EVD.Properties.VariableNames(1:8);
 par.varNames = varNames;
@@ -116,6 +117,12 @@ for i=1:num_iters
             % If there are no machines the player wants to play, they
             % leave
             playerLeft(player == par.players) = true;
+        else
+            dataRecord = makeDataRecord(curr_eventID, next_eventID, e, n, player, par);
+        
+            if dataRecord.numericTime > par.timeout
+                playerLeft(player == par.players) = true;
+            end
         end
         
         % Update occupied machines
@@ -123,13 +130,11 @@ for i=1:num_iters
         
         if playerLeft(player == par.players)
             playerLeft(player == par.players) = false;
-            [data, par.players, occupied] = makePlayerLeave(data, par.players, occupied, player, par);
+            [data, par, occupied] = makePlayerLeave(data, occupied, player, par);
             continue;
         end
         
         occupied(n) = true;
-        
-        dataRecord = makeDataRecord(curr_eventID, next_eventID, e, n, player, par);
         data = [data; dataRecord];
         times(i,j) = toc;
     end
@@ -146,7 +151,7 @@ for j=1:par.J
 end
 
 % Make meters cumulative
-data = sortrows(data, [3,8]);
+data = sortrows(data, [1,8]);
 machineNumbers = unique(data.machineNumber);
 for i=1:length(machineNumbers)
     index = data.machineNumber == machineNumbers(i);
@@ -157,18 +162,19 @@ end
 data.numericTime = data.numericTime/(24*60*60) + par.startTime;
 data.time = datetime(data.numericTime, 'ConvertFrom','datenum');
 
+data = sortrows(data, [3,8]);
 save('Data\EVD_genNew', 'data');
 writetable(data, 'Data\EVD_genNew.csv');
 
 function par = setup
-    load('Data\par.mat');
+    load('Data\par1.mat');
     par.N = length(par.uniqueMachineNumbers);
     par.E = length(par.uniqueEventCodes);
     par.J = length(par.uniquePlayers);
     par.initEventCode = 901;
     par.startTime = datenum(2020, 6, 22, 0, 0, 0);
     par.num_iters = 1e2;
-    par.J = 10;
-    par.timeout = 2/24; % 2 hr timeout
+    par.J = 700;
+    par.timeout = 2*3600; % 2 hr timeout in seconds
     par.EVD.filename = 'K:\My Drive\School\Thesis\Data Anonymization\Data\EVD_datGen.mat';
 end

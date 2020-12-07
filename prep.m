@@ -158,7 +158,10 @@ for j=1:J
         end
         
         if cardIn
-            [i_in, j_in, s_in] = insert_trans(prevs(e), currs(e), i_in, j_in, s_in);
+            % Check if prev and curr are on the same machine
+            if EVD_j.machineNumber(e) == EVD_j.machineNumber(e+1)
+                [i_in, j_in, s_in] = insert_trans(prevs(e), currs(e), i_in, j_in, s_in);
+            end
         else
             [i_out, j_out, s_out] = insert_trans(prevs(e), currs(e), i_out, j_out, s_out);
         end

@@ -1,11 +1,22 @@
-function [data, player_pool_all, occupied] = makePlayerLeave(data, player_pool_all, occupied, player, par)
-    playerChoices = setdiff(par.uniquePlayers, player_pool_all);
-    newPlayer = playerChoices(randi(length(playerChoices)));
-    player_pool_all(player_pool_all == player) = newPlayer;
+function [data, par, occupied] = makePlayerLeave(data, occupied, player, par)
+    % Choose a new player
+    playerChoicesIndex = ~ismember(par.uniquePlayers, par.players);
+    playerChoices = par.uniquePlayers(playerChoicesIndex);
+    playersDist = par.playersDist(playerChoicesIndex)/sum(par.playersDist(playerChoicesIndex));
+    cumDist = cumsum1(playersDist);
+    num = rand;
+    k = find(cumDist > num, 1);
+    newPlayer = playerChoices(k);
+    par.players(par.players == player) = newPlayer;
+    par.playerIndex(par.players == newPlayer) = find(par.uniquePlayers == newPlayer);
 
     % Insert initial event for this player
-    machineChoices = par.firstMachines(ismember(par.firstMachines, par.uniqueMachineNumbers(~occupied)));
-    machine = machineChoices(randi(length(machineChoices)));
+    machineChoicesIndex = ~occupied;
+    machineChoices = par.uniqueMachineNumbers(machineChoicesIndex);
+    cumDist = cumsum1(par.firstMachinesDist);
+    num = rand;
+    k = find(cumDist > num, 1);
+    machine = machineChoices(k);
     occupied(par.uniqueMachineNumbers == machine) = true;
     
     t = max(cumsum1(data.numericTime(data.patronID == player))) + 5; % Chose 5 just cause, need to come up with a better way to choose the offset
