@@ -5,12 +5,16 @@ load(par.EVD.filename);
 occupied = false(par.N, 1);
 par.playerIndex = 1:par.J;
 par.players = par.uniquePlayers(par.playerIndex);
+par.eventNum = zeros(length(par.uniquePlayers), 1);
+par.eventNum(par.playerIndex) = 1;
 
 varNames = EVD.Properties.VariableNames(1:8);
+varNames = [{'eventNum'}, varNames];
 par.varNames = varNames;
-data = table([], [], [], [], [], [], [], [], 'VariableNames', par.varNames);
+data = table([], [], [], [], [], [], [], [], [], 'VariableNames', par.varNames);
 
 [data, occupied] = initializeProcess(par, data, occupied);
+par.dataHeight = height(data);
 
 %Begin generating data
 num_iters = par.num_iters;
@@ -31,49 +35,10 @@ for i=1:num_iters
         
         % Get current state of player
 %        if ~playerLeft(player == par.uniquePlayers)
-        prev_index = find(data.patronID == player, 1, 'last');
+        prev_index = find(data.patronID(1:par.dataHeight) == player, 1, 'last');
         curr_machineNumber = data.machineNumber(prev_index);
         curr_eventCode = data.eventCode(prev_index);
         curr_eventID = par.eventID_lookupTable(par.uniqueEventCodes == curr_eventCode, par.uniqueMachineNumbers == curr_machineNumber);
-%        else
-%             % Choose unoccupied first machine from firstMachines
-%             % distribution, effectively resetting the player. hopefully
-%             % will prevent the drop off in events/day and players/day
-%             machineChoices = par.firstMachines(ismember(par.firstMachines, par.uniqueMachineNumbers(~occupied)));
-%             curr_eventCode = par.initEventCode;
-%             
-%             prev_index = find(data.patronID == player, 1, 'last');
-%             prev_machineNumber = data.machineNumber(prev_index);
-%             prev_eventCode = data.eventCode(prev_index);
-%             prev_eventID = par.eventID_lookupTable(prev_eventCode == par.uniqueEventCodes, prev_machineNumber == par.uniqueMachineNumbers);
-%             
-%             % Only choose from machines that are possible to transition to
-%             % from the previous event ID
-%             choice_eventIDs = par.eventID_lookupTable(curr_eventCode == par.uniqueEventCodes, ismember(par.uniqueMachineNumbers, machineChoices));
-%             possibleTransitionsIndex = par.trans_mat.cardOut(prev_eventID == par.eventIDs.cardOut, ismember(par.eventIDs.cardOut, choice_eventIDs)) > 0;
-%             
-%             if ~any(possibleTransitionsIndex)
-%                 % Try again later
-%                 continue;
-%             end
-%             
-%             choice_eventIDs = choice_eventIDs(possibleTransitionsIndex);
-%             [~, uniqueMachineChoicesIndex] = ind2sub(size(par.eventID_lookupTable), choice_eventIDs);
-%             uniqueMachineChoices = par.uniqueMachineNumbers(uniqueMachineChoicesIndex);
-%             machineChoices = machineChoices(ismember(machineChoices, uniqueMachineChoices));
-%             curr_machineNumber = machineChoices(randi(length(machineChoices)));
-%             curr_eventID = par.eventID_lookupTable(curr_eventCode == par.uniqueEventCodes, curr_machineNumber == par.uniqueMachineNumbers);
-%             
-%             playerLeft(player == par.uniquePlayers) = false;
-%             occupied(par.uniqueMachineNumbers == curr_machineNumber) = true;
-%             
-%             dataRecord = makeDataRecord(prev_eventID, curr_eventID, e, n, player, par);
-%             
-%             % Add the event to the data
-%             data = [data; dataRecord];
-
-             
-%        end
         
         % Did we last see a card in or card out event for this player
         cardIn_index = find(data.patronID == player & data.eventCode == 901, 1, 'last');
@@ -135,15 +100,27 @@ for i=1:num_iters
         end
         
         occupied(n) = true;
-        data = [data; dataRecord];
+        
+        % Add session.
+        par.eventNum(par.uniquePlayers == dataRecord.patronID) = par.eventNum(par.uniquePlayers == dataRecord.patronID) + 1;
+        if par.dataHeight >= height(data)
+            data=[data; repmat(dataRecord, 1000*par.J, 1)];
+        else
+            data(par.dataHeight + 1, :)=dataRecord;
+        end
+        par.dataHeight = par.dataHeight + 1;
+        %data = [data; dataRecord];
         times(i,j) = toc;
     end
 end
+
+data(par.dataHeight + 1:end, :) = [];
 
 % Convert time differences to absolutes
 for j=1:par.J
     player = par.uniquePlayers(j);
     data_j = data(data.patronID == player, :);
+    data_j = sortrows(data_j, 1);
     for i=2:height(data_j)
         data_j.numericTime(i) = data_j.numericTime(i-1) + data_j.numericTime(i);
     end
@@ -151,7 +128,7 @@ for j=1:par.J
 end
 
 % Make meters cumulative
-data = sortrows(data, [1,8]);
+data = sortrows(data, [2,9]);
 machineNumbers = unique(data.machineNumber);
 for i=1:length(machineNumbers)
     index = data.machineNumber == machineNumbers(i);
@@ -162,19 +139,19 @@ end
 data.numericTime = data.numericTime/(24*60*60) + par.startTime;
 data.time = datetime(data.numericTime, 'ConvertFrom','datenum');
 
-data = sortrows(data, [3,8]);
+data = sortrows(data, [4,1]);
 save('Data\EVD_genNew', 'data');
 writetable(data, 'Data\EVD_genNew.csv');
 
 function par = setup
-    load('Data\par1.mat');
+    load('Data\par.mat');
     par.N = length(par.uniqueMachineNumbers);
     par.E = length(par.uniqueEventCodes);
     par.J = length(par.uniquePlayers);
     par.initEventCode = 901;
     par.startTime = datenum(2020, 6, 22, 0, 0, 0);
-    par.num_iters = 1e2;
-    par.J = 700;
+    par.num_iters = 1e6;
+    par.J = 1;
     par.timeout = 2*3600; % 2 hr timeout in seconds
-    par.EVD.filename = 'K:\My Drive\School\Thesis\Data Anonymization\Data\EVD_datGen.mat';
+    par.EVD.filename = 'K:\My Drive\School\Thesis\Synthetic_Dat_Gen\Data\EVD_datGen.mat';
 end

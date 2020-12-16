@@ -19,7 +19,12 @@ function [data, par, occupied] = makePlayerLeave(data, occupied, player, par)
     machine = machineChoices(k);
     occupied(par.uniqueMachineNumbers == machine) = true;
     
-    t = max(cumsum1(data.numericTime(data.patronID == player))) + 5; % Chose 5 just cause, need to come up with a better way to choose the offset
-    dataRecord = table(machine, par.initEventCode, newPlayer, 0, 0, 0, datetime(0, 1, 1, 0, 0, 0), t, 'VariableNames', par.varNames);
-    data = [data; dataRecord];
+    par.eventNum(par.uniquePlayers == newPlayer) = par.eventNum(par.uniquePlayers == newPlayer) + 1;
+    par.dataHeight = par.dataHeight + 1;
+    data_i = data(1:par.dataHeight, :);
+    times = data_i.numericTime(data_i.patronID == player);
+    t = max(cumsum1(times)) + 5; % Chose 5 just cause, need to come up with a better way to choose the offset
+    dataRecord = table(par.eventNum(par.uniquePlayers == newPlayer), machine, par.initEventCode, newPlayer, 0, 0, 0, datetime(0, 1, 1, 0, 0, 0), t, 'VariableNames', par.varNames);
+    data(par.dataHeight, :) = dataRecord;
+    
 end

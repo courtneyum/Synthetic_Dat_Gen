@@ -21,7 +21,7 @@ function [data, occupied] = initializeProcess(par, data, occupied)
         machine = par.uniqueMachineNumbers(machinesIndex(k));
 
         % Insert initial data point
-        dataRecord = table(machine, par.initEventCode, player, 0, 0, 0, datetime(0, 1, 1, 0, 0, 0), 0, 'VariableNames', par.varNames);
+        dataRecord = table(1, machine, par.initEventCode, player, 0, 0, 0, datetime(0, 1, 1, 0, 0, 0), 0, 'VariableNames', par.varNames);
         data = [data; dataRecord];
 
         % Update available machines and players

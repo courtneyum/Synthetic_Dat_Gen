@@ -2,7 +2,8 @@ function dataRecord = makeDataRecord(curr_eventID, next_eventID, e, n, player, p
     % Draw accompanying info, choose as a quadruple rather than
     % independently to account for correlation
     
-    index = par.delta.key(:,1) == curr_eventID & par.delta.key(:,2) == next_eventID;
+    %index = par.delta.key(:,1) == curr_eventID & par.delta.key(:,2) == next_eventID;
+    index = par.delta.key(curr_eventID, next_eventID);
     
     choices = par.delta.CI{index};
     k = randi(length(choices));
@@ -18,5 +19,5 @@ function dataRecord = makeDataRecord(curr_eventID, next_eventID, e, n, player, p
     t = choices(k);
 
     % Add to data
-    dataRecord = table(par.uniqueMachineNumbers(n), par.uniqueEventCodes(e), player, CI, CO, GP, datetime(0, 1, 1, 0, 0, 0), t, 'VariableNames', par.varNames);
+    dataRecord = table(par.eventNum(par.uniquePlayers == player) + 1, par.uniqueMachineNumbers(n), par.uniqueEventCodes(e), player, CI, CO, GP, datetime(0, 1, 1, 0, 0, 0), t, 'VariableNames', par.varNames);
 end
