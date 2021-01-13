@@ -99,6 +99,7 @@ for i=1:num_iters
             continue;
         end
         
+        dataRecord.numericTime = dataRecord.numericTime + data.numericTime(prev_index);
         occupied(n) = true;
         
         % Add session.
@@ -117,15 +118,15 @@ end
 data(par.dataHeight + 1:end, :) = [];
 
 % Convert time differences to absolutes
-for j=1:par.J
-    player = par.uniquePlayers(j);
-    data_j = data(data.patronID == player, :);
-    data_j = sortrows(data_j, 1);
-    for i=2:height(data_j)
-        data_j.numericTime(i) = data_j.numericTime(i-1) + data_j.numericTime(i);
-    end
-    data(data.patronID == player, :) = data_j;
-end
+% for j=1:par.J
+%     player = par.uniquePlayers(j);
+%     data_j = data(data.patronID == player, :);
+%     data_j = sortrows(data_j, 1);
+%     for i=2:height(data_j)
+%         data_j.numericTime(i) = data_j.numericTime(i-1) + data_j.numericTime(i);
+%     end
+%     data(data.patronID == player, :) = data_j;
+% end
 
 % Make meters cumulative
 data = sortrows(data, [2,9]);
@@ -151,7 +152,7 @@ function par = setup
     par.initEventCode = 901;
     par.startTime = datenum(2020, 6, 22, 0, 0, 0);
     par.num_iters = 1e6;
-    par.J = 1;
+    par.J = 100;
     par.timeout = 2*3600; % 2 hr timeout in seconds
     par.EVD.filename = 'K:\My Drive\School\Thesis\Synthetic_Dat_Gen\Data\EVD_datGen.mat';
 end

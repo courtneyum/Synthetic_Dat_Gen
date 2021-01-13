@@ -123,60 +123,92 @@ clear("EVD_n");
 uniquePlayers = unique(EVD.patronID);
 uniquePlayers(isnan(uniquePlayers)) = [];
 J = length(uniquePlayers);
-i_in = []; i_out = [];
-j_in = []; j_out = [];
-s_in = []; s_out = [];
-delta.length = 0;
-delta.key = sparse(par.N*par.E, par.N*par.E);
-delta.CI = {};
-delta.CO = {};
-delta.GP = {};
-delta.t = {};
-firstMachines = zeros(par.N, 1);
-players = zeros(J, 1);
-for j=1:J
-    EVD_index = EVD.patronID == uniquePlayers(j);
-    EVD_j = EVD(EVD_index, :);
-    EVD_j = sortrows(EVD_j, 'numericTime');
-    if height(EVD_j) < 2
-        disp(['Ignoring player ', num2str(uniquePlayers(j)), ' at j=', num2str(j)]);
-        continue;
-    end
-    %firstMachines = [firstMachines; EVD_j.machineNumber(1)];
-    firstMachines(par.uniqueMachineNumbers == EVD_j.machineNumber(1)) = firstMachines(par.uniqueMachineNumbers == EVD_j.machineNumber(1)) + 1;
-    players(j) = sum(EVD_j.patronID == uniquePlayers(j));
-    CI_j = EVD_j.delta_CI;
-    CO_j = EVD_j.delta_CO;
-    GP_j = EVD_j.delta_GP;
-    prevs = EVD_j.eventID(1:end-1);
-    currs = EVD_j.eventID(2:end);
-    cardIn = false;
-
-    for e=1:length(currs)
-        if EVD_j.eventCode(e) == 901
-            cardIn = true;
-        elseif EVD_j.eventCode(e) == 902
-            cardIn = false;
-        end
-        
-        if cardIn
-            % Check if prev and curr are on the same machine
-            if EVD_j.machineNumber(e) == EVD_j.machineNumber(e+1)
-                [i_in, j_in, s_in] = insert_trans(prevs(e), currs(e), i_in, j_in, s_in);
-            end
-        else
-            [i_out, j_out, s_out] = insert_trans(prevs(e), currs(e), i_out, j_out, s_out);
-        end
-        delta = insert_delta(delta, prevs(e), currs(e), EVD_j, e);
-    end
-end
-
 par.J = J;
 par.uniquePlayers = uniquePlayers;
-par.playersDist = players/sum(players);
-par.firstMachinesDist = firstMachines/sum(firstMachines);
+par = setupForTransMatBuild(par);
+buildTransitionMatrices_Launcher(par);
+load(fullfile(par.dataDir, par.transMatFilename));
+% i_in = []; i_out = [];
+% j_in = []; j_out = [];
+% s_in = []; s_out = [];
+% delta.length = 0;
+% delta.key = sparse(par.N*par.E, par.N*par.E);
+% delta.CI = {};
+% delta.CO = {};
+% delta.GP = {};
+% delta.t = {};
+% firstMachines = zeros(par.N, 1);
+% players = zeros(J, 1);
+% for j=1:J
+%     EVD_index = EVD.patronID == uniquePlayers(j);
+%     EVD_j = EVD(EVD_index, :);
+%     EVD_j = sortrows(EVD_j, 'numericTime');
+%     if height(EVD_j) < 2
+%         disp(['Ignoring player ', num2str(uniquePlayers(j)), ' at j=', num2str(j)]);
+%         continue;
+%     end
+%     %firstMachines = [firstMachines; EVD_j.machineNumber(1)];
+%     firstMachines(par.uniqueMachineNumbers == EVD_j.machineNumber(1)) = firstMachines(par.uniqueMachineNumbers == EVD_j.machineNumber(1)) + 1;
+%     players(j) = sum(EVD_j.patronID == uniquePlayers(j));
+%     CI_j = EVD_j.delta_CI;
+%     CO_j = EVD_j.delta_CO;
+%     GP_j = EVD_j.delta_GP;
+%     prevs = EVD_j.eventID(1:end-1);
+%     currs = EVD_j.eventID(2:end);
+%     cardIn = false;
+%     
+% %     index = prevs == 85157;
+% %     prevs = prevs(index);
+% %     currs = currs(index);
+% 
+%     for e=1:length(currs)
+%         if EVD_j.eventCode(e) == 901
+%             cardIn = true;
+%         elseif EVD_j.eventCode(e) == 902
+%             cardIn = false;
+%         end
+%         
+%         if cardIn
+%             %Check if prev and curr are on the same machine
+%             if EVD_j.machineNumber(e) == EVD_j.machineNumber(e+1)
+%                 [i_in, j_in, s_in] = insert_trans(prevs(e), currs(e), i_in, j_in, s_in);
+%             end
+%         else
+%             [i_out, j_out, s_out] = insert_trans(prevs(e), currs(e), i_out, j_out, s_out);
+%         end
+%         delta = insert_delta(delta, prevs(e), currs(e), EVD_j, e);
+%     end
+% end
+% 
+% par.J = J;
+% par.uniquePlayers = uniquePlayers;
+% par.playersDist = players/sum(players);
+% par.firstMachinesDist = firstMachines/sum(firstMachines);
+% 
+% 
+% 
+% % Build par structure and save it
+% par.i.in = i_in;
+% par.i.out = i_out;
+% par.j.in = j_in;
+% par.j.out = j_out;
+% par.s.in = s_in;
+% par.s.out = s_out;
+% 
+% save('K:\My Drive\School\Thesis\Synthetic_Dat_Gen\Data\par.mat', 'par');
+% 
+% trans_mat_cardIn = sparse(i_in, j_in, s_in, par.N*par.E, par.N*par.E);
+% trans_mat_cardOut = sparse(i_out, j_out, s_out, par.N*par.E, par.N*par.E);
+% par.totalTransitions.cardIn = sum(trans_mat_cardIn, 2, 'omitnan');
+% par.totalTransitions.cardOut = sum(trans_mat_cardOut, 2, 'omitnan');
+% % par.trans_mat.cardIn = sparse(i_in, j_in, s_in./par.totalTransitions.cardIn(i_in), par.N*par.E, par.N*par.E);
+% % par.trans_mat.cardOut = sparse(i_out, j_out, s_out./par.totalTransitions.cardOut(i_out), par.N*par.E, par.N*par.E);
+% par.delta = delta;
+% save('K:\My Drive\School\Thesis\Synthetic_Dat_Gen\Data\par.mat', 'par');
 
 
+par.totalTransitions.cardIn = sum(par.trans_mat.cardIn, 2, 'omitnan');
+par.totalTransitions.cardOut = sum(par.trans_mat.cardOut, 2, 'omitnan');
 
 % This next section consists of the next step in building the transition matrices. 
 % Here, the occupancy of each machine is taken into account.
@@ -197,12 +229,16 @@ end
 
 p_occ = timeOccupied./timeAlive;
 
+[i_in, j_in, s_in] = find(par.trans_mat.cardIn);
+[i_out, j_out, s_out] = find(par.trans_mat.cardOut);
+
 for k=1:length(s_in)
     i = i_in(k);
     j = j_in(k);
     [~,n_i] = ind2sub(size(par.eventID_lookupTable), i);
     [~,n_j] = ind2sub(size(par.eventID_lookupTable), j);
     
+    s_in(k) = s_in(k)/par.totalTransitions.cardIn(i);
     s_in(k) = s_in(k)/(1-p_occ(n_j));
 end
 for k=1:length(s_out)
@@ -211,28 +247,12 @@ for k=1:length(s_out)
     [~,n_i] = ind2sub(size(par.eventID_lookupTable), i);
     [~,n_j] = ind2sub(size(par.eventID_lookupTable), j);
     
+    s_out(k) = s_out(k)/par.totalTransitions.cardOut(i);
     s_out(k) = s_out(k)/(1-p_occ(n_j));
 end
 
-
-
-% Build par structure and save it
-par.i.in = i_in;
-par.i.out = i_out;
-par.j.in = j_in;
-par.j.out = j_out;
-par.s.in = s_in;
-par.s.out = s_out;
-
-trans_mat_cardIn = sparse(i_in, j_in, s_in, par.N*par.E, par.N*par.E);
-trans_mat_cardOut = sparse(i_out, j_out, s_out, par.N*par.E, par.N*par.E);
-par.totalTransitions.cardIn = sum(trans_mat_cardIn, 2, 'omitnan');
-par.totalTransitions.cardOut = sum(trans_mat_cardOut, 2, 'omitnan');
-par.trans_mat.cardIn = sparse(i_in, j_in, s_in./par.totalTransitions.cardIn(i_in), par.N*par.E, par.N*par.E);
-par.trans_mat.cardOut = sparse(i_out, j_out, s_out./par.totalTransitions.cardOut(i_out), par.N*par.E, par.N*par.E);
-par.delta = delta;
-save('K:\My Drive\School\Thesis\Synthetic_Dat_Gen\Data\par.mat', 'par');
-
+par.trans_mat.cardIn = sparse(i_in, j_in, s_in);
+par.trans_mat.cardOut = sparse(i_out, j_out, s_out);
 
 
 % Now we can remove any event IDs that can't be reached, shrinking the
@@ -252,6 +272,7 @@ for i=1:size(par.trans_mat.cardIn, 1)
         deleteIndex_cardOut = [deleteIndex_cardOut; i];
     end
 end
+    
 
 par.trans_mat.cardIn(deleteIndex_cardIn,:) = [];
 par.trans_mat.cardIn(:,deleteIndex_cardIn) = [];
@@ -260,33 +281,6 @@ par.eventIDs.cardIn(deleteIndex_cardIn) = [];
 par.trans_mat.cardOut(deleteIndex_cardOut,:) = [];
 par.trans_mat.cardOut(:,deleteIndex_cardOut) = [];
 par.eventIDs.cardOut(deleteIndex_cardOut) = [];
-
-save('K:\My Drive\School\Thesis\Synthetic_Dat_Gen\Data\par.mat', 'par');
-
-
-% Need to account for misordered data and zero out any off-block-diagonal
-% elements of the cardIn transition matrix so players aren't jumping around
-% mid-session
-[~, n] = ind2sub(size(par.eventID_lookupTable), par.eventIDs.cardIn);
-trans_mat = par.trans_mat.cardIn;
-for i=1:length(par.eventIDs.cardIn)
-    e_i = par.eventIDs.cardIn(i);
-    for j=1:length(par.eventIDs.cardIn)
-        if j == i
-            continue
-        end
-        if n(i) ~= n(j)
-            e_j = par.eventIDs.cardIn(j);
-            trans_mat(i, j) = 0;
-        end
-    end
-end
-
-par.trans_mat.cardIn = trans_mat;
-
-for i=1:length(par.eventIDs.cardIn)
-    par.trans_mat.cardIn(i, :) = par.trans_mat.cardIn(i, :)/sum(par.trans_mat.cardIn(i, :), 2);
-end
 
 save('K:\My Drive\School\Thesis\Synthetic_Dat_Gen\Data\par.mat', 'par');
 
@@ -310,3 +304,17 @@ for n=1:N
     avgBlock_cardOut_normalized = avgBlock_cardOut_normalized + currBlock;
 end
 avgBlock_cardOut_normalized = avgBlock_cardOut_normalized/N;
+
+function par = setupForTransMatBuild(par)
+    try
+        %GDriveRoot=getpref('School', 'GDriveRoot');
+        GDriveRoot = getpref('School', 'GDriveDataRoot');
+    catch err
+        disp('*** PLEASE SET A PREFERENCE FOR YOUR GDRIVE LOCATION ***');
+        rethrow(err);
+    end
+    
+    par.transMatFilename = 'parTest';
+    par.dataDir = fullfile(GDriveRoot, 'Synthetic_Dat_Gen', 'Data');
+    par.numCores = 8;
+end

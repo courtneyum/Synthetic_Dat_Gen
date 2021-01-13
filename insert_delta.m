@@ -2,7 +2,7 @@ function delta = insert_delta(delta, prev, curr, EVD_j, e)
     if delta.key(prev, curr) == 0
         delta.length = delta.length + 1;
         delta.key(prev, curr) = delta.length;
-        index = delta.length + 1;
+        index = delta.length;
         delta.CI(index) = {[]};
         delta.CO(index) = {[]};
         delta.GP(index) = {[]};
