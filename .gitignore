@@ -4,5 +4,7 @@
 *.fig
 *.png
 *.mlx
+*.txt
 scratchPad.m
 Session Converter\
+profile_results\
