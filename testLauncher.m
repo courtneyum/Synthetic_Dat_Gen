@@ -1,16 +1,26 @@
 function testLauncher
 
 par = setup;
+
+% Delete the scratchDir if it exists. Generate a new one.
+if exist(par.scratchDir, 'dir')
+    rmdir(par.scratchDir, 's');
+end
+pause(5);
+mkdir(par.scratchDir);
+
 testValues = par.(par.testField);
 coordination.mean_error_prob = zeros(length(testValues), par.numTests);
 coordination.mean_error_trad = coordination.mean_error_prob;
 coordination.mean_error_est = coordination.mean_error_prob;
+coordination.mean_error_new = coordination.mean_error_prob;
 coordination.reservedMachineNumbers = struct;
 coordination.(par.testField) = testValues;
 coordination.par = par;
 
 %assign tests, alternating from front to back to give each node a more even
-%load
+%load, test values at the end are more time intensive than test values at
+%the beginning
 testsPerNode = ceil(length(testValues)/par.NCores);
 %start = 1;
 testValues_temp = testValues;
@@ -34,7 +44,7 @@ for i=1:par.NCores
     end
 end
 %coordination.reserved.(['process', num2str(par.NCores)]) = testValues(start:end);
-save('coordination', 'coordination');
+save(fullfile(par.scratchDir, 'coordination'), 'coordination');
 
 thisDir=fileparts(which(mfilename));
 if par.NCores > 1
@@ -44,47 +54,33 @@ if par.NCores > 1
     end
 else
     test(1);
+    joinAndViewTests;
 end
 end
 
 function par=setup
-par.NMachines=10:5:200;
-par.NPlayers=9;
-par.NSteps=1e7;
+par.NMachines=5;
+par.NPlayers = 3;
+par.NSteps=[1e3;1e4;1e5;1e6;1e7;1e8;1e9];
 par.PNoMove=0.9;
-par.numTests = 10;
+par.numTests = 5;
 par.testName = 'test';
 
-par.NCores = 6;
+par.NCores = 4;
 % par.matlabStartupCmd=strrep(which('addpath'),...
 %     fullfile('toolbox', 'matlab', 'general', 'addpath.m'),...
 %     fullfile('bin', 'matlab'));
 par.matlabStartupCmd = 'matlab';
 par.matlabOptions='-nojvm -nodesktop -nosplash -singleCompThread -minimize';
-par.testField = 'NMachines';
+if length(par.NMachines) > 1
+    par.testField = 'NMachines';
+elseif length(par.NPlayers) > 1
+    par.testField = 'NPlayers';
+elseif length(par.NSteps) > 1
+    par.testField = 'NSteps';
+else
+    par.testField = 'NMachines';
 end
 
-% mostCommonPlayerOccs = zeros(size(EVD0.segments));
-% players_all = mostCommonPlayerOccs;
-% for i=1:length(EVD0.segments)
-%     players = unique(EVD0.data(i).patronID);
-%     players(isnan(players)) = [];
-%     for j=1:length(players)
-%         count = sum(EVD0.data(i).patronID == players(j));
-%         if count > mostCommonPlayerOccs(i)
-%             mostCommonPlayerOccs(i) = count;
-%             players_all(i) = players(j);
-%         end
-%     end
-% end
-
-% load('coordination');
-% mean_error_prob = coordination.mean_error_prob;
-% mean_error_trad = coordination.mean_error_trad;
-% mean_error_est = coordination.mean_error_est;
-% for i=1:6
-%     load(['coordination', num2str(i)]);
-%     mean_error_prob = mean_error_prob + coordination.mean_error_prob;
-%     mean_error_est = mean_error_est + coordination.mean_error_est;
-%     mean_error_trad = mean_error_trad + coordination.mean_error_trad;
-% end
+par.scratchDir = 'K:\My Drive\School\Thesis\Synthetic_Dat_Gen\Data\scratch\tests';
+end
