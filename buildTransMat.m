@@ -17,8 +17,8 @@ function buildTransMat(PID)
     delta.CO = {};
     delta.GP = {};
     delta.t = {};
-    firstMachines = zeros(par.N, 1);
-    players = zeros(J, 1);
+    firstMachinesCount = zeros(par.N, 1);
+    playersCount = zeros(J, 1);
     for j=1:J
         n = fileIndex(j);
         load(coordination.files(n).EVD);
@@ -29,8 +29,8 @@ function buildTransMat(PID)
             continue;
         end
         %firstMachines = [firstMachines; EVD_j.machineNumber(1)];
-        firstMachines(par.uniqueMachineNumbers == EVD_j.machineNumber(1)) = firstMachines(par.uniqueMachineNumbers == EVD_j.machineNumber(1)) + 1;
-        players(j) = sum(EVD_j.patronID == uniquePlayers(j));
+        firstMachinesCount(par.uniqueMachineNumbers == EVD_j.machineNumber(1)) = firstMachinesCount(par.uniqueMachineNumbers == EVD_j.machineNumber(1)) + 1;
+        playersCount(j) = sum(EVD_j.patronID == uniquePlayers(j));
         CI_j = EVD_j.delta_CI;
         CO_j = EVD_j.delta_CO;
         GP_j = EVD_j.delta_GP;
@@ -53,11 +53,13 @@ function buildTransMat(PID)
                 %Check if prev and curr are on the same machine
                 if EVD_j.machineNumber(e) == EVD_j.machineNumber(e+1)
                     [i_in, j_in, s_in] = insert_trans(prevs(e), currs(e), i_in, j_in, s_in);
+                    delta = insert_delta(delta, prevs(e), currs(e), EVD_j, e);
                 end
             else
                 [i_out, j_out, s_out] = insert_trans(prevs(e), currs(e), i_out, j_out, s_out);
+                delta = insert_delta(delta, prevs(e), currs(e), EVD_j, e);
             end
-            delta = insert_delta(delta, prevs(e), currs(e), EVD_j, e);
+            
         end
     end
     
@@ -69,8 +71,8 @@ function buildTransMat(PID)
     par.j.out = j_out;
     par.s.in = s_in;
     par.s.out = s_out;
-    par.players = players;
-    par.firstMachines = firstMachines;
+    par.playersCount = playersCount;
+    par.firstMachinesCount = firstMachinesCount;
     
     save([fullfile(par.scratchDir, 'transMat', par.transMatRootFileName), num2str(PID)], 'par');
 end

@@ -36,7 +36,8 @@ function buildTransitionMatrices_Launcher(par)
     
     uniquePlayers = unique(EVD.patronID);
     uniquePlayers(isnan(uniquePlayers)) = [];
-%     uniquePlayers = uniquePlayers(find(uniquePlayers == 47068):find(uniquePlayers == 99929));
+    uniquePlayers = par.uniquePlayers;
+
     coordination.uniquePlayers = uniquePlayers;
  
     for n=1:length(uniquePlayers)

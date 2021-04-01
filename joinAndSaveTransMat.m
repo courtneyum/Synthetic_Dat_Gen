@@ -4,16 +4,18 @@ function joinAndSaveTransMat
     par0 = coordination.par;
     fileTemplate=fullfile(par0.scratchDir, 'transMat');
     %[par0.transMatRootFileName, '.*']);
-
     transMatFiles = getTransMatFiles(fileTemplate);
     load(transMatFiles{1});
     
+    par0.playersCount = zeros(size(par0.uniquePlayers));
+    par0.firstMachinesCount = zeros(size(par0.uniqueMachineNumbers));
+    
     par = prepForIntegration(par, par0);
     
-    transMat.cardIn = sparse(par.i.in, par.j.in, par.s.in);
-    transMat.cardOut = sparse(par.i.out, par.j.out, par.s.out);
-    firstMachinesDist = par.firstMachines;
-    playersDist = par.players;
+    trans_mat.cardIn = sparse(par.i.in, par.j.in, par.s.in);
+    trans_mat.cardOut = sparse(par.i.out, par.j.out, par.s.out);
+    par0.firstMachinesCount = par.firstMachinesCount;
+    par0.playersCount = par.playersCount;
     delta = par.delta;
     
     for i=2:length(transMatFiles)
@@ -21,10 +23,10 @@ function joinAndSaveTransMat
         
         par = prepForIntegration(par, par0);
     
-        transMat.cardIn = transMat.cardIn + sparse(par.i.in, par.j.in, par.s.in);
-        transMat.cardOut = transMat.cardOut + sparse(par.i.out, par.j.out, par.s.out);
-        firstMachinesDist = firstMachinesDist + par.firstMachines;
-        playersDist = playersDist + par.players;
+        trans_mat.cardIn = trans_mat.cardIn + sparse(par.i.in, par.j.in, par.s.in);
+        trans_mat.cardOut = trans_mat.cardOut + sparse(par.i.out, par.j.out, par.s.out);
+        par0.firstMachinesCount = par0.firstMachinesCount + par.firstMachinesCount;
+        par0.playersCount = par0.playersCount + par.playersCount;
         
         deltaIndex = find(par.delta.key > 0);
         [m, n] = ind2sub(size(par.delta.key), deltaIndex);
@@ -48,9 +50,11 @@ function joinAndSaveTransMat
         end
     end
     
-    par0.trans_mat = transMat;
-    par0.playersDist = playersDist/sum(playersDist);
-    par0.firstMachinesDist = firstMachinesDist/sum(firstMachinesDist);
+    par0.trans_mat = trans_mat;
+    par0.totalTransitions.cardIn = sum(par0.trans_mat.cardIn, 2);
+    par0.totalTransitions.cardOut = sum(par0.trans_mat.cardOut, 2);
+    par0.playersDist = par0.playersCount/sum(par0.playersCount);
+    par0.firstMachinesDist = par0.firstMachinesCount/sum(par0.firstMachinesCount);
     par0.delta = delta;
     par = par0;
     
@@ -85,9 +89,9 @@ function par = prepForIntegration(par, par0)
     end
     
     playersIndex = ismember(par0.uniquePlayers, par.uniquePlayers);
-    players = zeros(length(par0.uniquePlayers), 1);
-    players(playersIndex) = players(playersIndex) + par.players;
-    par.players = players;
+    playersCount = par.playersCount;
+    par.playersCount = zeros(size(par0.uniquePlayers));
+    par.playersCount(playersIndex) = par0.playersCount(playersIndex) + playersCount;
 end
 
 function par = setup
