@@ -1,6 +1,20 @@
+function generate(PID)
+
 % Initialize
-rng(0);
+rng(PID);
 par = setup;
+load(fullfile(par.scratchDir, par.coordinationFilename));
+par = coordination.par;
+saveFile = fullfile(par.scratchEVD, [par.EVDRootFilename, num2str(PID)]);
+saveFileCheckpoint = fullfile(par.scratchEVD, 'checkpoints', [par.EVDRootFilename, 'check', num2str(PID)]);
+NCores = par.NCores;
+loadCheckpoint = par.loadCheckpoint;
+
+par = par.params;
+par.N = length(par.uniqueMachineNumbers);
+par.E = length(par.uniqueEventCodes);
+num_iters = par.num_iters/NCores;
+
 load(par.EVD.filename);
 occupied = false(par.N, 1);
 par.playerIndex = 1:par.J;
@@ -11,22 +25,38 @@ par.eventNum(par.playerIndex) = 1;
 varNames = EVD.Properties.VariableNames(1:8);
 varNames = [{'eventNum'}, varNames];
 par.varNames = varNames;
-data = table([], [], [], [], [], [], [], [], [], 'VariableNames', par.varNames);
 
-[data, occupied] = initializeProcess(par, data, occupied);
+par.inCycleSteps = zeros(size(par.players));
+
+if ~loadCheckpoint
+    data = table([], [], [], [], [], [], [], [], [], 'VariableNames', par.varNames);
+
+    [data, occupied] = initializeProcess(par, data, occupied);
+else
+    load(saveFileCheckpoint)
+    data = saveData.data;
+    occupied = saveData.occupied;
+    par = saveData.par;
+end
 par.dataHeight = height(data);
 
 %Begin generating data
-num_iters = par.num_iters;
-times = zeros(num_iters, par.J);
-playerLeft = false(par.J, 1);
+times = zeros(num_iters, 1);
+par.playerLeft = false(par.J, 1);
 for i=1:num_iters
     % Reset player pool
+    tic;
     player_pool = par.players;
+    if mod(i, 1000) == 1 && i > 1
+        disp(['On iteration ', num2str(i), 'Time elapsed: ', num2str(times(i-1))]);
+        saveData.data = data(1:par.dataHeight, :);
+        saveData.occupied = occupied;
+        saveData.par = par;
+        save(saveFileCheckpoint, 'saveData');
+    end
     
-    for j=1:par.J
-        tic;
-        %playerLeft = false;
+    J = length(par.players);
+    for j=1:J
         
         % Select a player from the pool
         k = randi(length(player_pool));
@@ -34,7 +64,6 @@ for i=1:num_iters
         player_pool = setdiff(player_pool, player_pool(k));
         
         % Get current state of player
-%        if ~playerLeft(player == par.uniquePlayers)
         prev_index = find(data.patronID(1:par.dataHeight) == player, 1, 'last');
         curr_machineNumber = data.machineNumber(prev_index);
         curr_eventCode = data.eventCode(prev_index);
@@ -81,20 +110,23 @@ for i=1:num_iters
         if isempty(possibleTransitions)
             % If there are no machines the player wants to play, they
             % leave
-            playerLeft(player == par.players) = true;
+            par.playerLeft(player == par.players) = true;
         else
+            data_temp = data(1:par.dataHeight, :);
+            [par, stuck] = stuckInCycle(data(find(data_temp.patronID == player, 10, 'last'), :), par, cardIn);
+                
             dataRecord = makeDataRecord(curr_eventID, next_eventID, e, n, player, par);
         
-            if dataRecord.numericTime > par.timeout
-                playerLeft(player == par.players) = true;
+            if dataRecord.numericTime > par.timeout || stuck
+                par.playerLeft(player == par.players) = true;
             end
         end
         
         % Update occupied machines
         occupied(par.uniqueMachineNumbers == curr_machineNumber) = false;
         
-        if playerLeft(player == par.players)
-            playerLeft(player == par.players) = false;
+        if par.playerLeft(player == par.players)
+            par.playerLeft(player == par.players) = false;
             [data, par, occupied] = makePlayerLeave(data, occupied, player, par);
             continue;
         end
@@ -110,9 +142,8 @@ for i=1:num_iters
             data(par.dataHeight + 1, :)=dataRecord;
         end
         par.dataHeight = par.dataHeight + 1;
-        %data = [data; dataRecord];
-        times(i,j) = toc;
     end
+    times(i) = toc;
 end
 
 data(par.dataHeight + 1:end, :) = [];
@@ -141,18 +172,18 @@ data.numericTime = data.numericTime/(24*60*60) + par.startTime;
 data.time = datetime(data.numericTime, 'ConvertFrom','datenum');
 
 data = sortrows(data, [4,1]);
-save('Data\EVD_genNew', 'data');
-writetable(data, 'Data\EVD_genNew.csv');
+% save('Data\EVD_genNew', 'data');
+% writetable(data, 'Data\EVD_genNew.csv');
+save(saveFile, 'data');
+end
 
 function par = setup
-    load('Data\par.mat');
-    par.N = length(par.uniqueMachineNumbers);
-    par.E = length(par.uniqueEventCodes);
-    par.J = length(par.uniquePlayers);
-    par.initEventCode = 901;
-    par.startTime = datenum(2020, 6, 22, 0, 0, 0);
-    par.num_iters = 1e6;
-    par.J = 100;
-    par.timeout = 2*3600; % 2 hr timeout in seconds
-    par.EVD.filename = 'K:\My Drive\School\Thesis\Synthetic_Dat_Gen\Data\EVD_datGen.mat';
+    try
+        GDriveRoot=getpref('School', 'GDriveDataRoot');
+    catch err
+        disp('*** PLEASE SET A PREFERENCE FOR YOUR GDRIVE LOCATION ***');
+        rethrow(err);
+    end
+    par.scratchDir=fullfile(GDriveRoot, 'Synthetic_Dat_Gen', 'Data', 'scratch');
+    par.coordinationFilename = 'coordination';
 end
