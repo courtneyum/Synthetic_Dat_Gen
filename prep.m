@@ -48,7 +48,6 @@ for i=1:E
     end
 end
 EVD.eventID = eventID;
-par.eventID_lookupTable = eventID_lookupTable;
 clear('eventID');
 
 par.N = N;
@@ -74,8 +73,7 @@ EVD.secondTime = round(EVD.secondTime);
 
 % We are only interested in the amount of coin-in, coin-out, and games played 
 % caused by each event relative to the event that occurred previously on the same machine. 
-% This must be calculated. We can also assign player ids to uncarded events that 
-% take place before a card is inserted or afterwards based on sessions.
+% This must be calculated. 
 
 delta_CI = zeros(size(EVD.machineNumber));
 delta_CO = zeros(size(EVD.machineNumber));
@@ -95,6 +93,8 @@ EVD.delta_CO = delta_CO;
 EVD.delta_GP = delta_GP;
 EVD.delta_t = delta_t;
 
+% We can also assign player ids to uncarded events that 
+% take place before a card is inserted or afterwards based on sessions.
 load('K:\My Drive\School\Thesis\Data\Processed\sessionData-AcresNew.mat');
 half_sec = 1/(24*60*60*2);
 for i=1:height(sessions)
@@ -104,14 +104,54 @@ for i=1:height(sessions)
     EVD_index = EVD.machineNumber == sessions.machineNumber(i) & EVD.numericTime >= t_start & EVD.numericTime <= t_end;
     EVD.patronID(EVD_index) = patronID;
 end
+
+% When a session ends, how many more start up within an hour?
+% This is the rate at which players are replaced
+t_start = floor(min(sessions.t_start_numeric));
+t_end = ceil(max(sessions.t_end_numeric));
+intervalsPerDay = 6;
+M = (t_end - t_start)*(intervalsPerDay); % number of intervals between t_start and t_end
+repRate = zeros(M, 1);
+for m=1:M
+    interval_start = (m-1)/intervalsPerDay + t_start;
+    interval_end = m/intervalsPerDay + t_start;
+    departures = sum(sessions.t_end_numeric > interval_start & sessions.t_end_numeric < interval_end);
+    arrivals = sum(sessions.t_start_numeric > interval_start & sessions.t_start_numeric < interval_end);
+    repRate(m) = arrivals/departures;
+end
+repRate(isinf(repRate)) = NaN;
+
+% Use a weekly cycle to model player replacement
+daysPerCycle = 7;
+intervalsPerCycle = daysPerCycle*intervalsPerDay;
+numCycles = floor((t_end - t_start)/daysPerCycle);
+cutoff = length(repRate) - rem(t_end - t_start, daysPerCycle);
+repRate = repRate(1:cutoff);
+repRate = reshape(repRate, numCycles, intervalsPerCycle);
+repRate = mean(repRate, 1, 'omitnan');
+%Data starts on Wednesday to need to shift by three days
+repRate = circshift(repRate, 3*intervalsPerDay);
+par.playerReplacement.repRate = repRate;
+par.playerReplacement.intervalsPerDay = intervalsPerDay;
+par.playerReplacement.daysPerCycle = daysPerCycle;
+par.playerReplacement.numCycles = numCycles;
+
+% Delete events for players that don't have any valid sessions. This is
+% usually indicative of bad data
+uniquePlayers_sessions = unique(sessions.patronID);
+uniquePlayers_EVD = unique(EVD.patronID);
+uniquePlayers_EVD(isnan(uniquePlayers_EVD)) = [];
+uniquePlayers_del = find(~ismember(uniquePlayers_EVD, uniquePlayers_sessions));
+for i=1:length(uniquePlayers_del)
+    EVD(EVD.patronID == uniquePlayers_del(i), :) = [];
+end
 save('K:\My Drive\School\Thesis\Synthetic_Dat_Gen\Data\EVD_datGen.mat', 'EVD', '-v7.3');
 clear("delta_CI");
 clear("delta_CO");
 clear("delta_GP");
 clear("EVD_n");
 
-
-
+% 
 % Now we are ready to build the transition matrix and associated coin-in, coin-out, games played, 
 % and time elapsed distributions. Time elapsed is handled differently because with time, 
 % we are interested in the time between player events. But with coin-in, coin-out, and games played, 
@@ -119,191 +159,44 @@ clear("EVD_n");
 % Time elapsed is a player level quantity, while the meter deltas are machine level quantities.
 % The transition matrix is made right-stochastic by dividing each row by its sum.
 % In the following section, the number of transitions made from each event to each other event is calculated.
+% 
 
+%Build transition matrix using uniform occupancy method
 uniquePlayers = unique(EVD.patronID);
 uniquePlayers(isnan(uniquePlayers)) = [];
 J = length(uniquePlayers);
 par.J = J;
 par.uniquePlayers = uniquePlayers;
 par = setupForTransMatBuild(par);
+save('K:\My Drive\School\Thesis\Synthetic_Dat_Gen\Data\par0.mat', 'par');
 buildTransitionMatrices_Launcher(par);
 load(fullfile(par.dataDir, par.transMatFilename));
-% i_in = []; i_out = [];
-% j_in = []; j_out = [];
-% s_in = []; s_out = [];
-% delta.length = 0;
-% delta.key = sparse(par.N*par.E, par.N*par.E);
-% delta.CI = {};
-% delta.CO = {};
-% delta.GP = {};
-% delta.t = {};
-% firstMachines = zeros(par.N, 1);
-% players = zeros(J, 1);
-% for j=1:J
-%     EVD_index = EVD.patronID == uniquePlayers(j);
-%     EVD_j = EVD(EVD_index, :);
-%     EVD_j = sortrows(EVD_j, 'numericTime');
-%     if height(EVD_j) < 2
-%         disp(['Ignoring player ', num2str(uniquePlayers(j)), ' at j=', num2str(j)]);
-%         continue;
-%     end
-%     %firstMachines = [firstMachines; EVD_j.machineNumber(1)];
-%     firstMachines(par.uniqueMachineNumbers == EVD_j.machineNumber(1)) = firstMachines(par.uniqueMachineNumbers == EVD_j.machineNumber(1)) + 1;
-%     players(j) = sum(EVD_j.patronID == uniquePlayers(j));
-%     CI_j = EVD_j.delta_CI;
-%     CO_j = EVD_j.delta_CO;
-%     GP_j = EVD_j.delta_GP;
-%     prevs = EVD_j.eventID(1:end-1);
-%     currs = EVD_j.eventID(2:end);
-%     cardIn = false;
-%     
-% %     index = prevs == 85157;
-% %     prevs = prevs(index);
-% %     currs = currs(index);
-% 
-%     for e=1:length(currs)
-%         if EVD_j.eventCode(e) == 901
-%             cardIn = true;
-%         elseif EVD_j.eventCode(e) == 902
-%             cardIn = false;
-%         end
-%         
-%         if cardIn
-%             %Check if prev and curr are on the same machine
-%             if EVD_j.machineNumber(e) == EVD_j.machineNumber(e+1)
-%                 [i_in, j_in, s_in] = insert_trans(prevs(e), currs(e), i_in, j_in, s_in);
-%             end
-%         else
-%             [i_out, j_out, s_out] = insert_trans(prevs(e), currs(e), i_out, j_out, s_out);
-%         end
-%         delta = insert_delta(delta, prevs(e), currs(e), EVD_j, e);
-%     end
-% end
-% 
-% par.J = J;
-% par.uniquePlayers = uniquePlayers;
-% par.playersDist = players/sum(players);
-% par.firstMachinesDist = firstMachines/sum(firstMachines);
-% 
-% 
-% 
-% % Build par structure and save it
-% par.i.in = i_in;
-% par.i.out = i_out;
-% par.j.in = j_in;
-% par.j.out = j_out;
-% par.s.in = s_in;
-% par.s.out = s_out;
-% 
-% save('K:\My Drive\School\Thesis\Synthetic_Dat_Gen\Data\par.mat', 'par');
-% 
-% trans_mat_cardIn = sparse(i_in, j_in, s_in, par.N*par.E, par.N*par.E);
-% trans_mat_cardOut = sparse(i_out, j_out, s_out, par.N*par.E, par.N*par.E);
-% par.totalTransitions.cardIn = sum(trans_mat_cardIn, 2, 'omitnan');
-% par.totalTransitions.cardOut = sum(trans_mat_cardOut, 2, 'omitnan');
-% % par.trans_mat.cardIn = sparse(i_in, j_in, s_in./par.totalTransitions.cardIn(i_in), par.N*par.E, par.N*par.E);
-% % par.trans_mat.cardOut = sparse(i_out, j_out, s_out./par.totalTransitions.cardOut(i_out), par.N*par.E, par.N*par.E);
-% par.delta = delta;
-% save('K:\My Drive\School\Thesis\Synthetic_Dat_Gen\Data\par.mat', 'par');
 
+%Build transition matrix using probability update method, requires building
+%of transition matrix via uniform occupancy first
+par = buildTransMatProbUpdate(par);
 
-par.totalTransitions.cardIn = sum(par.trans_mat.cardIn, 2, 'omitnan');
-par.totalTransitions.cardOut = sum(par.trans_mat.cardOut, 2, 'omitnan');
-
-% This next section consists of the next step in building the transition matrices. 
-% Here, the occupancy of each machine is taken into account.
-
-load('K:\My Drive\School\Thesis\Synthetic_Dat_Gen\Data\sessionData-AcresNew.mat');
-timeAlive = zeros(size(par.uniqueMachineNumbers));
-timeOccupied = zeros(size(par.uniqueMachineNumbers));
-for i=1:length(par.uniqueMachineNumbers)
-    session_index = sessions.machineNumber == par.uniqueMachineNumbers(i);
-    EVD_index = EVD.machineNumber == par.uniqueMachineNumbers(i);
-    if ~any(session_index)
-        timeOccupied(i) = 0;
-    else
-        timeOccupied(i) = sum(sessions.duration_numeric(session_index));
-    end
-    timeAlive(i) = max(EVD.numericTime(EVD_index)) - min(EVD.numericTime(EVD_index));
-end
-
-p_occ = timeOccupied./timeAlive;
-
-[i_in, j_in, s_in] = find(par.trans_mat.cardIn);
-[i_out, j_out, s_out] = find(par.trans_mat.cardOut);
-
-for k=1:length(s_in)
-    i = i_in(k);
-    j = j_in(k);
-    [~,n_i] = ind2sub(size(par.eventID_lookupTable), i);
-    [~,n_j] = ind2sub(size(par.eventID_lookupTable), j);
-    
-    s_in(k) = s_in(k)/par.totalTransitions.cardIn(i);
-    s_in(k) = s_in(k)/(1-p_occ(n_j));
-end
-for k=1:length(s_out)
-    i = i_out(k);
-    j = j_out(k);
-    [~,n_i] = ind2sub(size(par.eventID_lookupTable), i);
-    [~,n_j] = ind2sub(size(par.eventID_lookupTable), j);
-    
-    s_out(k) = s_out(k)/par.totalTransitions.cardOut(i);
-    s_out(k) = s_out(k)/(1-p_occ(n_j));
-end
-
-par.trans_mat.cardIn = sparse(i_in, j_in, s_in);
-par.trans_mat.cardOut = sparse(i_out, j_out, s_out);
-
-
-% Now we can remove any event IDs that can't be reached, shrinking the
-% transition matrix to a more manageable size
-
-par.eventIDs.cardIn = (1:par.N*par.E)';
-par.eventIDs.cardOut = (1:par.N*par.E)';
-deleteIndex_cardIn = [];
-deleteIndex_cardOut = [];
-for i=1:size(par.trans_mat.cardIn, 1)
-    if all(par.trans_mat.cardIn(:,i) == 0) && all(par.trans_mat.cardIn(i,:) == 0)
-        deleteIndex_cardIn = [deleteIndex_cardIn; i];
-        
-    end
-    
-    if all(par.trans_mat.cardOut(:,i) == 0) && all(par.trans_mat.cardOut(i,:) == 0)
-        deleteIndex_cardOut = [deleteIndex_cardOut; i];
-    end
-end
-    
-
-par.trans_mat.cardIn(deleteIndex_cardIn,:) = [];
-par.trans_mat.cardIn(:,deleteIndex_cardIn) = [];
-par.eventIDs.cardIn(deleteIndex_cardIn) = [];
-
-par.trans_mat.cardOut(deleteIndex_cardOut,:) = [];
-par.trans_mat.cardOut(:,deleteIndex_cardOut) = [];
-par.eventIDs.cardOut(deleteIndex_cardOut) = [];
-
-save('K:\My Drive\School\Thesis\Synthetic_Dat_Gen\Data\par.mat', 'par');
 
 % Below, we average the diagonal blocks of the transition matrix, normalized and unnormalized, 
 % to get an idea about the "average" sequence of events that make up a session.
 
-E = par.E;
-N = par.N;
-avgBlock_cardIn_normalized = zeros(E);
-for n=1:N
-    currBlock = par.trans_mat.cardIn((n-1)*E + 1:n*E, (n-1)*E + 1:n*E);
-    currBlock(isnan(currBlock)) = 0;
-    avgBlock_cardIn_normalized = avgBlock_cardIn_normalized + currBlock;
-end
-avgBlock_cardIn_normalized = avgBlock_cardIn_normalized/N;
-
-avgBlock_cardOut_normalized = zeros(E);
-for n=1:N
-    currBlock = par.trans_mat.cardOut((n-1)*E + 1:n*E, (n-1)*E + 1:n*E);
-    currBlock(isnan(currBlock)) = 0;
-    avgBlock_cardOut_normalized = avgBlock_cardOut_normalized + currBlock;
-end
-avgBlock_cardOut_normalized = avgBlock_cardOut_normalized/N;
+% E = par.E;
+% N = par.N;
+% avgBlock_cardIn_normalized = zeros(E);
+% for n=1:N
+%     currBlock = par.trans_mat.cardIn((n-1)*E + 1:n*E, (n-1)*E + 1:n*E);
+%     currBlock(isnan(currBlock)) = 0;
+%     avgBlock_cardIn_normalized = avgBlock_cardIn_normalized + currBlock;
+% end
+% avgBlock_cardIn_normalized = avgBlock_cardIn_normalized/N;
+% 
+% avgBlock_cardOut_normalized = zeros(E);
+% for n=1:N
+%     currBlock = par.trans_mat.cardOut((n-1)*E + 1:n*E, (n-1)*E + 1:n*E);
+%     currBlock(isnan(currBlock)) = 0;
+%     avgBlock_cardOut_normalized = avgBlock_cardOut_normalized + currBlock;
+% end
+% avgBlock_cardOut_normalized = avgBlock_cardOut_normalized/N;
 
 function par = setupForTransMatBuild(par)
     try
