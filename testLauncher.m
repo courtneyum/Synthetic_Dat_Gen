@@ -14,6 +14,8 @@ coordination.mean_error_prob = zeros(length(testValues), par.numTests);
 coordination.mean_error_trad = coordination.mean_error_prob;
 coordination.mean_error_est = coordination.mean_error_prob;
 coordination.mean_error_new = coordination.mean_error_prob;
+coordination.num_iters = coordination.mean_error_prob;
+coordination.error = zeros(length(testValues), par.NSteps);
 coordination.reservedMachineNumbers = struct;
 coordination.(par.testField) = testValues;
 coordination.par = par;
@@ -44,7 +46,7 @@ for i=1:par.NCores
     end
 end
 %coordination.reserved.(['process', num2str(par.NCores)]) = testValues(start:end);
-save(fullfile(par.scratchDir, 'coordination'), 'coordination');
+save(fullfile(par.scratchDir, 'coordination'), 'coordination', '-v7.3');
 
 thisDir=fileparts(which(mfilename));
 if par.NCores > 1
@@ -53,7 +55,7 @@ if par.NCores > 1
         unix(cmd);
     end
 else
-    test(1);
+    epsilonComparisonTestResults(1);
     joinAndViewTests;
 end
 end
@@ -61,12 +63,14 @@ end
 function par=setup
 par.NMachines=5;
 par.NPlayers = 3;
-par.NSteps=[1e3;1e4;1e5;1e6;1e7;1e8;1e9];
+par.NSteps=1e8;
+par.alpha = -1:0.1:1;
+par.precision = 1e-3;
 par.PNoMove=0.9;
-par.numTests = 5;
-par.testName = 'test';
+par.numTests = 1;
+par.testName = 'epsilonComparisonTestResults';
 
-par.NCores = 4;
+par.NCores = 5;
 % par.matlabStartupCmd=strrep(which('addpath'),...
 %     fullfile('toolbox', 'matlab', 'general', 'addpath.m'),...
 %     fullfile('bin', 'matlab'));
@@ -78,6 +82,8 @@ elseif length(par.NPlayers) > 1
     par.testField = 'NPlayers';
 elseif length(par.NSteps) > 1
     par.testField = 'NSteps';
+elseif length(par.alpha) > 1
+    par.testField = 'alpha';
 else
     par.testField = 'NMachines';
 end
