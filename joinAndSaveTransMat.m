@@ -2,7 +2,7 @@ function joinAndSaveTransMat
     par0 = setup;
     load(par0.converterCoordinationFile);
     par0 = coordination.par;
-    fileTemplate=fullfile(par0.scratchDir, 'transMat');
+    fileTemplate=par0.scratch_transMat;
     %[par0.transMatRootFileName, '.*']);
     transMatFiles = getTransMatFiles(fileTemplate);
     load(transMatFiles{1});
@@ -58,43 +58,44 @@ function joinAndSaveTransMat
     par0.delta = delta;
     par = par0;
     
-    load('K:\My Drive\School\Thesis\Synthetic_Dat_Gen\Data\sessionData-AcresNew.mat');
-    timeAlive = zeros(size(par.uniqueMachineNumbers));
-    for i=1:length(par.uniqueMachineNumbers)
-        EVD_index = EVD.machineNumber == par.uniqueMachineNumbers(i);
-        timeAlive(i) = max(EVD.numericTime(EVD_index)) - min(EVD.numericTime(EVD_index));
-    end
+%     load('K:\My Drive\School\Thesis\Synthetic_Dat_Gen\Data\sessionData-AcresNew.mat');
+%     load('K:\My Drive\School\Thesis\Synthetic_Dat_Gen\Data\EVD_datGen.mat');
+%     timeAlive = zeros(size(par.uniqueMachineNumbers));
+%     for i=1:length(par.uniqueMachineNumbers)
+%         EVD_index = EVD.machineNumber == par.uniqueMachineNumbers(i);
+%         timeAlive(i) = max(EVD.numericTime(EVD_index)) - min(EVD.numericTime(EVD_index));
+%     end
     
-    time_i_occ_j_occ = zeros(par.N);
-    time_i_occ = zeros(par.N, 1);
-    for i=1:height(sessions)
-        session_i = sessions(i, :);
-        time_i_occ(par.uniqueMachineNumbers == session_i.machineNumber) = time_i_occ(par.uniqueMachineNumbers == session_i.machineNumber) + session_i.duration_numeric;
-        
-        sessionIndex = sessions.t_start_numeric >= session_i.t_start_numeric & sessions.t_start_numeric < session_i.t_end_numeric;
-        sessionIndex = sessionIndex | (sessions.t_end_numeric > session_i.t_start_numeric & sessions.t_end_numeric <= session_i.t_end_numeric);
-        sessions_j = sessions(sessionIndex, :);
-        for j=1:height(sessions_j)
-            session_j = sessions_j(j, :);
-            index_i = par.uniqueMachineNumbers == session_i.machineNumber;
-            index_j = par.uniqueMachineNumbers == session_j.machineNumber;
-            
-            if session_j.t_start_numeric  >= session_i.t_start_numeric && session_j.t_end_numeric <= session_i.t_end_numeric
-                %session j is fully enclosed within session i
-                time_i_occ_j_occ(index_i, index_j) = time_i_occ_j_occ(index_i, index_j) + session_j.duration_numeric;
-            elseif session_j.t_start_numeric < session_i.t_start_numeric && session_j.t_end_numeric < session_i.t_end_numeric
-                %tail end of session j overlaps with session i
-                time_i_occ_j_occ(index_i, index_j) = time_i_occ_j_occ(index_i, index_j) + session_j.t_end_numeric - session_i.t_start_numeric;
-            elseif session_j.t_start_numeric > session_i.t_start_numeric && session_j.t_end_numeric > session_i.t_end_numeric
-                %beginning of session j overlaps with session i
-                time_i_occ_j_occ(index_i, index_j) = time_i_occ_j_occ(index_i, index_j) + session_i.t_end_numeric - session_j.t_start_numeric;
-            end
-        end
-    end
-    prob_i_occ = time_i_occ./timeAlive;
-    prob_i_occ_j_unocc = repmat(prob_i_occ, 1, par.N) - time_i_occ_j_occ./timeAlive; % 1 = P(i occ) + P(i unocc) = P(i occ & j occ) + P(i occ & j unocc) + P(i unocc)
-    
-    par.Q = prob_i_occ_j_unocc./prob_i_occ; %The probability that j is unoccupied given that i is occupied
+%     time_i_occ_j_occ = zeros(par.N);
+%     time_i_occ = zeros(par.N, 1);
+%     for i=1:height(sessions)
+%         session_i = sessions(i, :);
+%         time_i_occ(par.uniqueMachineNumbers == session_i.machineNumber) = time_i_occ(par.uniqueMachineNumbers == session_i.machineNumber) + session_i.duration_numeric;
+%         
+%         sessionIndex = sessions.t_start_numeric >= session_i.t_start_numeric & sessions.t_start_numeric < session_i.t_end_numeric;
+%         sessionIndex = sessionIndex | (sessions.t_end_numeric > session_i.t_start_numeric & sessions.t_end_numeric <= session_i.t_end_numeric);
+%         sessions_j = sessions(sessionIndex, :);
+%         for j=1:height(sessions_j)
+%             session_j = sessions_j(j, :);
+%             index_i = par.uniqueMachineNumbers == session_i.machineNumber;
+%             index_j = par.uniqueMachineNumbers == session_j.machineNumber;
+%             
+%             if session_j.t_start_numeric  >= session_i.t_start_numeric && session_j.t_end_numeric <= session_i.t_end_numeric
+%                 %session j is fully enclosed within session i
+%                 time_i_occ_j_occ(index_i, index_j) = time_i_occ_j_occ(index_i, index_j) + session_j.duration_numeric;
+%             elseif session_j.t_start_numeric < session_i.t_start_numeric && session_j.t_end_numeric < session_i.t_end_numeric
+%                 %tail end of session j overlaps with session i
+%                 time_i_occ_j_occ(index_i, index_j) = time_i_occ_j_occ(index_i, index_j) + session_j.t_end_numeric - session_i.t_start_numeric;
+%             elseif session_j.t_start_numeric > session_i.t_start_numeric && session_j.t_end_numeric > session_i.t_end_numeric
+%                 %beginning of session j overlaps with session i
+%                 time_i_occ_j_occ(index_i, index_j) = time_i_occ_j_occ(index_i, index_j) + session_i.t_end_numeric - session_j.t_start_numeric;
+%             end
+%         end
+%     end
+%     prob_i_occ = time_i_occ./timeAlive;
+%     prob_i_occ_j_unocc = repmat(prob_i_occ, 1, par.N) - time_i_occ_j_occ./timeAlive; % 1 = P(i occ) + P(i unocc) = P(i occ & j occ) + P(i occ & j unocc) + P(i unocc)
+%     
+%     par.Q = prob_i_occ_j_unocc./prob_i_occ; %The probability that j is unoccupied given that i is occupied
     
     
     [i_in, j_in, s_in] = find(par.trans_mat.cardIn);
@@ -152,7 +153,9 @@ function joinAndSaveTransMat
             % size
             s_in(k) = s_in(k)/par.totalTransitions.cardIn(i);
         end
-        s_in(k) = s_in(k)/Q(n_i, n_j);
+        if n_i ~= n_j
+            s_in(k) = s_in(k)/par.Q(n_i, n_j);
+        end
         cardInSum(unique_i_in == i) = cardInSum(unique_i_in == i) + s_in(k);
     end
     cardOutSum = zeros(size(unique_i_out));
@@ -165,7 +168,9 @@ function joinAndSaveTransMat
         if par.totalTransitions.cardOut(i) ~= 0
             s_out(k) = s_out(k)/par.totalTransitions.cardOut(i);
         end
-        s_out(k) = s_out(k)/Q(n_i,n_j);
+        if n_i ~= n_j
+            s_out(k) = s_out(k)/par.Q(n_i,n_j);
+        end
         cardOutSum(unique_i_out == i) = cardOutSum(unique_i_out == i) + s_out(k);
     end
 
@@ -211,8 +216,6 @@ function joinAndSaveTransMat
     % Get Communicating Classes
     [par.commClasses.C.in, par.commClasses.closed.in] = getCommunicatingClasses(par.trans_mat.cardIn);
     [par.commClasses.C.out, par.commClasses.closed.out] = getCommunicatingClasses(par.trans_mat.cardOut);
-
-    save('K:\My Drive\School\Thesis\Synthetic_Dat_Gen\Data\parUnifOcc.mat', 'par');
     
     save(fullfile(par.dataDir, par.transMatFilename), 'par');
 end
@@ -233,12 +236,12 @@ function sessionsFiles=getTransMatFiles(fileTemplate)
 end
 
 function par = prepForIntegration(par, par0)
-    if max(par.i.in < par.N*par.E) || max(par.j.in < par.N*par.E)
+    if max(par.i.in) < par.N*par.E || max(par.j.in) < par.N*par.E
         par.i.in = [par.i.in; par.N*par.E];
         par.j.in = [par.j.in; par.N*par.E];
         par.s.in = [par.s.in; 0];
     end
-    if max(par.i.out < par.N*par.E) || max(par.j.out < par.N*par.E)
+    if max(par.i.out) < par.N*par.E || max(par.j.out) < par.N*par.E
         par.i.out = [par.i.out; par.N*par.E];
         par.j.out = [par.j.out; par.N*par.E];
         par.s.out = [par.s.out; 0];
@@ -262,5 +265,5 @@ function par = setup
         rethrow(err);
     end
 
-    par.converterCoordinationFile = fullfile(GDriveRoot, 'Synthetic_Dat_Gen', 'Data', 'scratch', 'coordination.mat');
+    par.converterCoordinationFile = fullfile(GDriveRoot, 'Data', 'scratch', 'transMatUnifOcc', 'coordination.mat');
 end

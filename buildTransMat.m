@@ -28,7 +28,6 @@ function buildTransMat(PID)
             disp(['Ignoring player ', num2str(uniquePlayers(j)), ' at j=', num2str(j)]);
             continue;
         end
-        %firstMachines = [firstMachines; EVD_j.machineNumber(1)];
         firstMachinesCount(par.uniqueMachineNumbers == EVD_j.machineNumber(1)) = firstMachinesCount(par.uniqueMachineNumbers == EVD_j.machineNumber(1)) + 1;
         playersCount(j) = sum(EVD_j.patronID == uniquePlayers(j));
         CI_j = EVD_j.delta_CI;
@@ -38,26 +37,28 @@ function buildTransMat(PID)
         currs = EVD_j.eventID(2:end);
         cardIn = false;
 
-    %     index = prevs == 85157;
-    %     prevs = prevs(index);
-    %     currs = currs(index);
-
         for e=1:length(currs)
-            if EVD_j.eventCode(e) == 901
-                cardIn = true;
-            elseif EVD_j.eventCode(e) == 902
-                cardIn = false;
-            end
-
+            [currEventCodeIndex, currMachineNumberIndex] = ind2sub(size(par.eventID_lookupTable), currs(e));
+            [~, prevMachineNumberIndex] = ind2sub(size(par.eventID_lookupTable), prevs(e));
+            currMachineNumber = par.uniqueMachineNumbers(currMachineNumberIndex);
+            currEventCode = par.uniqueEventCodes(currEventCodeIndex);
+            prevMachineNumber = par.uniqueMachineNumbers(prevMachineNumberIndex);
             if cardIn
-                %Check if prev and curr are on the same machine
-                if EVD_j.machineNumber(e) == EVD_j.machineNumber(e+1)
+                %Check if prev and curr are on the same machine, out of
+                %order data make it possible that they aren't
+                if prevMachineNumber == currMachineNumber
                     [i_in, j_in, s_in] = insert_trans(prevs(e), currs(e), i_in, j_in, s_in);
                     delta = insert_delta(delta, prevs(e), currs(e), EVD_j, e);
                 end
             else
                 [i_out, j_out, s_out] = insert_trans(prevs(e), currs(e), i_out, j_out, s_out);
                 delta = insert_delta(delta, prevs(e), currs(e), EVD_j, e);
+            end
+            
+            if currEventCode == 901
+                cardIn = true;
+            elseif currEventCode == 902
+                cardIn = false;
             end
             
         end
@@ -74,7 +75,7 @@ function buildTransMat(PID)
     par.playersCount = playersCount;
     par.firstMachinesCount = firstMachinesCount;
     
-    save([fullfile(par.scratchDir, 'transMat', par.transMatRootFileName), num2str(PID)], 'par');
+    save([fullfile(par.scratch_transMat, par.transMatRootFileName), num2str(PID)], 'par');
 end
 
 function par = setup
@@ -89,5 +90,5 @@ function par = setup
         rethrow(err);
     end
 
-    par.converterCoordinationFile = fullfile(GDriveRoot, 'Synthetic_Dat_Gen', 'Data', 'scratch', 'coordination.mat');
+    par.converterCoordinationFile = fullfile(GDriveRoot, 'Data', 'scratch', 'transMatUnifOcc', 'coordination.mat');
 end

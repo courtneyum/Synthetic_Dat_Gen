@@ -1,77 +1,127 @@
-function par =  buildTransMatProbUpdate(par)
+function par =  buildTransMatProbUpdate(pid)
 % Transition Matrix Using the Probability update method
-load('K:\My Drive\School\Thesis\Synthetic_Dat_Gen\Data\sessionData-AcresNew.mat');
-load('K:\My Drive\School\Thesis\Synthetic_Dat_Gen\Data\parUnifOcc.mat');
-load('K:\My Drive\School\Thesis\Synthetic_Dat_Gen\Data\EVD_datGen.mat');
-trans_mat.cardIn = ones(size(par.trans_mat.cardIn))/size(par.trans_mat.cardIn, 1);
-trans_mat.cardOut = ones(size(par.trans_mat.cardOut))/size(par.trans_mat.cardOut, 1);
-eventIDs.cardIn = par.eventIDs.cardIn;
-eventIDs.cardOut = par.eventIDs.cardOut;
+par = setup;
+load(fullfile(par.scratchDir, par.converterCoordinationFile));
+par = coordination.par;
+load(fullfile(par.dataDir, par.EVDFilename));
+load(fullfile(par.dataDir, par.sessionDataFilename));
+load(fullfile(par.dataDir, par.parFilename));
+
+eventIDs = coordination.reservedEventIDs.(['process', num2str(pid)]);
 EVD = EVD(~isnan(EVD.patronID), :);
 EVD = sortrows(EVD, [3,8]);
-cardIn = false;
-occ = false(par.N*par.E, 1);
-uniquePlayers = unique(EVD.patronID);
-numTransitions.cardIn = zeros(size(trans_mat.cardIn, 1), 1);
-numTransitions.cardOut = zeros(size(trans_mat.cardOut, 1), 1);
-for i=1:length(uniquePlayers)
-    EVD_i = EVD(EVD.patronID == uniquePlayers(i), :);
-    for j=1:height(EVD_i)-1
-        prevEventID = EVD_i.eventID(j);
-        currEventID = EVD_i.eventID(j+1);
-        transitionTime = EVD_i.numericTime(j+1);
-        
-        if any(currEventID == par.eventID_lookupTable(par.uniqueEventCodes == 901, :))
-            cardIn = true;
-        end
-        
-        if any(currEventID == par.eventID_lookupTable(par.uniqueEventCodes == 902, :))
-            cardIn = false;
-        end
-        
-        occupiedSessionIndex = transitionTime > sessions.t_start_numeric & transitionTime < sessions.t_end_numeric;
-        if any(occupiedSessionIndex)
-            occupiedMachineNumbers = sessions.machineNumber(occupiedSessionIndex);
-            [~,~,occupiedMachineNumbersIndex] = intersect(occupiedMachineNumbers, par.uniqueMachineNumbers);
-            occupiedEventIDs = par.eventID_lookupTable(:, occupiedMachineNumbersIndex);
-            occ(occupiedEventIDs) = true;
-        end
-        occ(currEventID) = true;
-        
-        if cardIn
-            prevEventIDIndex = prevEventID == eventIDs.cardIn;
-            currEventIDIndex = currEventID == eventIDs.cardIn;
-            numTransitions.cardIn(prevEventIDIndex) = numTransitions.cardIn(prevEventIDIndex) + 1;
-            [~, ~, occIndex] = intersect(eventIDs.cardIn, 1:par.N*par.E);
-            occ_i = occ(occIndex);
-            sum_p_j = sum(trans_mat.cardIn(prevEventIDIndex, ~occ_i));
-            if any(prevEventIDIndex) && any(currEventIDIndex)
-                trans_mat.cardIn(prevEventIDIndex, currEventIDIndex) = trans_mat.cardIn(prevEventIDIndex, currEventIDIndex) + sum_p_j/numTransitions.cardIn(prevEventIDIndex);
-                trans_mat.cardIn(prevEventIDIndex, ~occ_i) = trans_mat.cardIn(prevEventIDIndex, ~occ_i)*(1 - 1/numTransitions.cardIn(prevEventIDIndex));
-            end
-                
-        else
-            prevEventIDIndex = prevEventID == eventIDs.cardOut;
-            currEventIDIndex = currEventID == eventIDs.cardOut;
-            numTransitions.cardOut(prevEventIDIndex) = numTransitions.cardOut(prevEventIDIndex) + 1;
-            [~, ~, occIndex] = intersect(eventIDs.cardOut, 1:par.N*par.E);
-            occ_i = occ(occIndex);
-            sum_p_j = sum(trans_mat.cardOut(prevEventIDIndex, ~occ_i));
-            if any(prevEventIDIndex) && any(currEventIDIndex == eventIDs.cardOut)
-                trans_mat.cardOut(prevEventIDIndex, currEventIDIndex) = trans_mat.cardOut(prevEventIDIndex, currEventIDIndex) + sum_p_j/numTransitions.cardOut(prevEventIDIndex);
-                trans_mat.cardOut(prevEventIDIndex, ~occ_i) = trans_mat.cardOut(prevEventIDIndex, ~occ_i)*(1 - 1/numTransitions.cardOut(prevEventIDIndex));
-            end
-        end
-        
+
+trans_mat = coordination.trans_mat;
+numTransitions = coordination.numTransitions;
+
+cardInIndex = find(EVD.eventCode == 901);
+cardOutIndex = find(EVD.eventCode == 902);
+
+prevIndex = [];
+currIndex = [];
+for i=1:length(eventIDs)
+    prevIndex_i = find(EVD.eventID == eventIDs(i));
+    prevIndex = [prevIndex; prevIndex_i];
+    currIndex = [currIndex; prevIndex_i + 1];
+end
+prevIndex(currIndex > height(EVD)) = [];
+currIndex(currIndex > height(EVD)) = [];
+
+cardInFlag = false(length(prevIndex), 1);
+for i=1:length(prevIndex)
+    inIndex = find(cardInIndex <= prevIndex(i) & EVD.patronID(cardInIndex) == EVD.patronID(prevIndex(i)), 1, 'last');
+    outIndex = find(cardOutIndex <= prevIndex(i) & EVD.patronID(cardOutIndex) == EVD.patronID(prevIndex(i)), 1, 'last');
+    
+    if ~isempty(inIndex) && isempty(outIndex)
+        cardInFlag(i) = true;
+    elseif ~isempty(inIndex) && ~isempty(outIndex) && cardInIndex(inIndex) > cardOutIndex(outIndex)
+        cardInFlag(i) = true;
     end
 end
 
-par.trans_mat.cardIn = trans_mat.cardIn;
-par.trans_mat.cardOut = trans_mat.cardOut;
-par.eventIDs.cardIn = eventIDs.cardIn;
-par.eventIDs.cardOut = eventIDs.cardOut;
-[par.commClasses.C.in, par.commClasses.closed.in] = getCommunicatingClasses(par.trans_mat.cardIn);
-[par.commClasses.C.out, par.commClasses.closed.out] = getCommunicatingClasses(par.trans_mat.cardOut);
+disp(['Processing ', num2str(length(prevIndex)), ' events']);
 
-save('K:\My Drive\School\Thesis\Synthetic_Dat_Gen\Data\parProbUpdate.mat', 'par');
+
+occ = false(par.N*par.E, 1);
+for j=1:length(prevIndex)
+    if mod(j, 1000) == 0
+        disp(['Processed ', num2str(j), '/' num2str(length(prevIndex)), ' events']);
+    end
+    if EVD.patronID(prevIndex(j)) ~= EVD.patronID(currIndex(j))
+        continue;
+    end
+    prevEventID = EVD.eventID(prevIndex(j));
+    currEventID = EVD.eventID(currIndex(j));
+    [~,prevN] = ind2sub(size(par.eventID_lookupTable), prevEventID);
+    [~,currN] = ind2sub(size(par.eventID_lookupTable), currEventID);
+    transitionTime = EVD.numericTime(currIndex(j));
+
+    occupiedSessionIndex = transitionTime > sessions.t_start_numeric & transitionTime < sessions.t_end_numeric;
+    if any(occupiedSessionIndex)
+        occupiedMachineNumbers = sessions.machineNumber(occupiedSessionIndex);
+        [~,~,occupiedMachineNumbersIndex] = intersect(occupiedMachineNumbers, par.uniqueMachineNumbers);
+        occupiedEventIDs = par.eventID_lookupTable(:, occupiedMachineNumbersIndex);
+        occ(occupiedEventIDs) = true;
+    end
+    occ(currEventID) = true;
+
+    if cardInFlag(j) && prevN == currN %Need to second condition to make sure out of order data isn't used to inform on probabilities
+        numTransitions.cardIn(prevEventID) = numTransitions.cardIn(prevEventID) + 1;
+        occ_i = occ;
+
+        numZeros = sum(trans_mat.cardIn(prevEventID, ~occ_i) == 0);
+
+        sum_p_j = sum(trans_mat.cardIn(prevEventID, ~occ_i)) + numZeros/(par.N*par.E);
+        if trans_mat.cardIn(prevEventID, currEventID) == 0
+            eps = 1/(par.N*par.E);
+        else
+            eps = 0;
+        end
+        trans_mat.cardIn(prevEventID, currEventID) = trans_mat.cardIn(prevEventID, currEventID) + sum_p_j/numTransitions.cardIn(prevEventID) + eps;
+        temp = trans_mat.cardIn(prevEventID, ~occ_i);
+        temp(temp == 0) = 1/(par.N*par.E);
+        trans_mat.cardIn(prevEventID, ~occ_i) = temp;
+        trans_mat.cardIn(prevEventID, ~occ_i) = trans_mat.cardIn(prevEventID, ~occ_i)*(1 - 1/numTransitions.cardIn(prevEventID));
+
+
+    elseif ~cardInFlag(j)
+        numTransitions.cardOut(prevEventID) = numTransitions.cardOut(prevEventID) + 1;
+        occ_i = occ;
+
+        numZeros = sum(trans_mat.cardOut(prevEventID, ~occ_i) == 0);
+
+        sum_p_j = sum(trans_mat.cardOut(prevEventID, ~occ_i)) + numZeros/(par.E*par.N);
+        if trans_mat.cardOut(prevEventID, currEventID) == 0
+            eps = 1/(par.N*par.E);
+        else
+            eps = 0;
+        end
+        trans_mat.cardOut(prevEventID, currEventID) = trans_mat.cardOut(prevEventID, currEventID) + sum_p_j/numTransitions.cardOut(prevEventID) + eps;
+        temp = trans_mat.cardOut(prevEventID, ~occ_i);
+        temp(temp == 0) = 1/(par.N*par.E);
+        trans_mat.cardOut(prevEventID, ~occ_i) = temp;
+        trans_mat.cardOut(prevEventID, ~occ_i) = trans_mat.cardOut(prevEventID, ~occ_i)*(1 - 1/numTransitions.cardOut(prevEventID));
+
+    end
+        
+end
+coordination.numTransitions = numTransitions;
+coordination.trans_mat = trans_mat;
+
+save(fullfile(coordination.par.scratch_transMat, [coordination.par.transMatRootFileName, num2str(pid)]), 'coordination', '-v7.3');
+
+'';
+end
+
+function par = setup
+    try
+        GDriveRoot = getpref('School', 'GDriveDataRoot');
+    catch err
+        disp('*** PLEASE SET A PREFERENCE FOR YOUR GDRIVE LOCATION ***');
+        rethrow(err);
+    end
+
+    % Scratch directory.
+    par.scratchDir=fullfile(GDriveRoot, 'Data', 'scratch', 'transMatProbUpdate');
+    par.converterCoordinationFile = 'coordination';
 end

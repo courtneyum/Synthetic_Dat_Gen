@@ -34,9 +34,7 @@ function buildTransitionMatrices_Launcher(par)
     
     load(fullfile(par.dataDir, par.EVDFilename));
     
-    uniquePlayers = unique(EVD.patronID);
-    uniquePlayers(isnan(uniquePlayers)) = [];
-    uniquePlayers = par.uniquePlayers;
+    uniquePlayers = unique(EVD.patronID(~isnan(EVD.patronID)));
 
     coordination.uniquePlayers = uniquePlayers;
  
@@ -94,7 +92,7 @@ end
 coordination.reservedPlayers.(['process', num2str(par.NCores)]) = coordination.uniquePlayers(start:end);
 %
 % Save coordination file.
-save(fullfile(par.scratchDir, par.converterCoordinationFile), 'coordination');
+save(fullfile(par.scratch_transMat, par.converterCoordinationFile), 'coordination');
 end
 
 function par = setup(par)
@@ -107,11 +105,11 @@ function par = setup(par)
     end
 
     % Scratch directory.
-    par.scratchDir=fullfile(GDriveRoot, 'Synthetic_Dat_Gen', 'Data', 'scratch');
+    par.scratchDir=fullfile(GDriveRoot, 'Data', 'scratch');
     par.scratch_EVD=fullfile(par.scratchDir, 'EVD_transMat');
-    par.scratch_transMat=fullfile(par.scratchDir, 'transMat');
-    par.transMatRootFileName='transMat4Process';
-    %par.NCores=8;
+    par.scratch_transMat=fullfile(par.scratchDir, 'transMatUnifOcc');
+    par.transMatRootFileName='transMatUnifOcc4Process';
+    par.NCores=6;
     par.matlabStartupCmd=strrep(which('addpath'),...
         fullfile('toolbox', 'matlab', 'general', 'addpath.m'),...
         fullfile('bin', 'matlab'));
