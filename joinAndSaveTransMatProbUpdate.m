@@ -22,6 +22,26 @@ par0 = par0.par;
 par0.trans_mat = par.trans_mat;
 par = par0;
 
+nonZeroIndexCardIn = find(par.trans_mat.cardIn > 0);
+[x,y] = ind2sub(size(par.trans_mat.cardIn), nonZeroIndexCardIn);
+numBadCardIn = 0;
+for i=1:length(x)
+    if par.delta.key(par.eventIDs.cardIn(x(i)), par.eventIDs.cardIn(y(i))) == 0
+        par.trans_mat.cardIn(x(i), y(i)) = 0;
+        numBadCardIn = numBadCardIn + 1;
+    end
+end
+
+nonZeroIndexCardOut = find(par.trans_mat.cardOut > 0);
+[x,y] = ind2sub(size(par.trans_mat.cardOut), nonZeroIndexCardOut);
+numBadCardOut = 0;
+for i=1:length(x)
+    if par.delta.key(par.eventIDs.cardOut(x(i)), par.eventIDs.cardOut(y(i))) == 0
+        par.trans_mat.cardOut(x(i), y(i)) = 0;
+        numBadCardOut = numBadCardOut + 1;
+    end
+end
+
 % Zero out elements not on the same machine for cardIn
 for i=1:length(par.uniqueMachineNumbers)
     eventIDs = par.eventID_lookupTable(:, i);
