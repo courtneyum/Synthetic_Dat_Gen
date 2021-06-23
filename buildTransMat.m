@@ -35,7 +35,13 @@ function buildTransMat(PID)
         GP_j = EVD_j.delta_GP;
         prevs = EVD_j.eventID(1:end-1);
         currs = EVD_j.eventID(2:end);
-        cardIn = false;
+        
+        [prevEventCodeIndex, ~] = ind2sub(size(par.eventID_lookupTable), prevs(1));
+        if par.uniqueEventCodes(prevEventCodeIndex) == 901
+            cardIn = true;
+        else
+            cardIn = false;
+        end
 
         for e=1:length(currs)
             [currEventCodeIndex, currMachineNumberIndex] = ind2sub(size(par.eventID_lookupTable), currs(e));
