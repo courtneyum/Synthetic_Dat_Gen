@@ -22,32 +22,27 @@ par0 = par0.par;
 par0.trans_mat = par.trans_mat;
 par = par0;
 
+par.eventIDs.cardIn = (1:par.N*par.E)';
+par.eventIDs.cardOut = (1:par.N*par.E)';
+
+% Zero out elements for which there are no real data points
 nonZeroIndexCardIn = find(par.trans_mat.cardIn > 0);
-[x,y] = ind2sub(size(par.trans_mat.cardIn), nonZeroIndexCardIn);
-numBadCardIn = 0;
-for i=1:length(x)
-    if par.delta.key(par.eventIDs.cardIn(x(i)), par.eventIDs.cardIn(y(i))) == 0
-        par.trans_mat.cardIn(x(i), y(i)) = 0;
-        numBadCardIn = numBadCardIn + 1;
-    end
-end
+
+nonZeroDeltaIndexCardIn = find(par.delta.key > 0);
+zeroIndex = setdiff(nonZeroIndexCardIn, nonZeroDeltaIndexCardIn);
+par.trans_mat.cardIn(zeroIndex) = 0;
 
 nonZeroIndexCardOut = find(par.trans_mat.cardOut > 0);
-[x,y] = ind2sub(size(par.trans_mat.cardOut), nonZeroIndexCardOut);
-numBadCardOut = 0;
-for i=1:length(x)
-    if par.delta.key(par.eventIDs.cardOut(x(i)), par.eventIDs.cardOut(y(i))) == 0
-        par.trans_mat.cardOut(x(i), y(i)) = 0;
-        numBadCardOut = numBadCardOut + 1;
-    end
-end
+
+nonZeroDeltaIndexCardOut = find(par.delta.key > 0);
+zeroIndex = setdiff(nonZeroIndexCardOut, nonZeroDeltaIndexCardOut);
+par.trans_mat.cardOut(zeroIndex) = 0;
 
 % Zero out elements not on the same machine for cardIn
 for i=1:length(par.uniqueMachineNumbers)
     eventIDs = par.eventID_lookupTable(:, i);
     otherEventIDs = setdiff(1:par.N*par.E, eventIDs);
     par.trans_mat.cardIn(eventIDs, otherEventIDs) = 0;
-    %par.trans_mat.cardIn(otherEventIDs, eventIDs) = 0;
 end
 
 % Renormalize. Have to do it this way because of large matrix size
@@ -88,8 +83,7 @@ par.trans_mat.cardOut = sparse(i_out, j_out, s_out);
 
  % Now we can remove any event IDs that can't be reached, shrinking the
 % transition matrix to a more manageable size
-par.eventIDs.cardIn = (1:par.N*par.E)';
-par.eventIDs.cardOut = (1:par.N*par.E)';
+
 deleteIndex_cardIn = [];
 deleteIndex_cardOut = [];
 for i=1:size(par.trans_mat.cardIn, 1)
