@@ -1,9 +1,8 @@
-function generate(PID)
+function generate(PID, par)
 
 % Initialize
 rng(PID);
-par = setup;
-load(fullfile(par.scratchDir, par.coordinationFilename));
+load(fullfile(par.scratchEVD, par.converterCoordinationFile));
 par = coordination.par;
 saveFile = fullfile(par.scratchEVD, [par.EVDRootFilename, num2str(PID)]);
 saveFileCheckpoint = fullfile(par.scratchEVD, 'checkpoints', [par.EVDRootFilename, 'check', num2str(PID)]);
@@ -14,6 +13,11 @@ par = par.params;
 par.N = length(par.uniqueMachineNumbers);
 par.E = length(par.uniqueEventCodes);
 num_iters = par.num_iters/NCores;
+
+par.numTransitionsAttempted = zeros(par.N, 1);
+par.numTransitionsRejected = zeros(par.N, 1);
+par.rejectionVarNames = {'Prev Event ID', 'Next Event ID', 'Patron ID', 'Event Num'}; % patron ID and event num identify the event that blocked the transition
+par.rejections = table([], [], [], [], 'VariableNames', par.rejectionVarNames);
 
 load(par.EVD.filename);
 occupied = false(par.N, 1);
@@ -43,7 +47,7 @@ par.dataHeight = height(data);
 %Begin generating data
 times = zeros(num_iters, 1);
 par.playerLeft = false(par.J, 1);
-for i=1:num_iters
+for i=par.dataHeight:num_iters
     % Reset player pool
     tic;
     player_pool = par.players;
@@ -96,6 +100,7 @@ for i=1:num_iters
             k = find(cumDist > num, 1);
             next_eventID = eventIDs(trans_index(k));
             [e, n] = ind2sub(size(par.eventID_lookupTable), next_eventID);
+            par.numTransitionsAttempted(n) = par.numTransitionsAttempted(n) + 1;
 
             % Check if already occupied
             if par.uniqueMachineNumbers(n) == curr_machineNumber || ~occupied(n)
@@ -104,6 +109,12 @@ for i=1:num_iters
                 possibleTransitions = possibleTransitions([1:k-1, k+1:end]);
                 trans_index = trans_index([1:k-1, k+1:end]);
                 possibleTransitions = possibleTransitions/sum(possibleTransitions);
+                
+                % Track the rejection for statistics
+                par.numTransitionsRejected(n) = par.numTransitionsRejected(n) + 1;
+                lastEventOnMachine = data(find(data.machineNumber == par.uniqueMachineNumbers(n), 1, 'last'), :);
+                rejection = table(curr_eventID, next_eventID, lastEventOnMachine.patronID, lastEventOnMachine.eventNum, 'VariableNames', par.rejectionVarNames);
+                par.rejections = [par.rejections; rejection];
             end
         end
         
@@ -134,7 +145,7 @@ for i=1:num_iters
         dataRecord.numericTime = dataRecord.numericTime + data.numericTime(prev_index);
         occupied(n) = true;
         
-        % Add session.
+        % Add event.
         par.eventNum(par.uniquePlayers == dataRecord.patronID) = par.eventNum(par.uniquePlayers == dataRecord.patronID) + 1;
         if par.dataHeight >= height(data)
             data=[data; repmat(dataRecord, 1000*par.J, 1)];
@@ -161,12 +172,22 @@ data(par.dataHeight + 1:end, :) = [];
 
 % Make meters cumulative
 data = sortrows(data, [2,9]);
+data.delta_CI = zeros(size(data.CI_meter));
+data.delta_CO = data.delta_CI;
+data.delta_GP = data.delta_CI;
 machineNumbers = unique(data.machineNumber);
 for i=1:length(machineNumbers)
     index = data.machineNumber == machineNumbers(i);
     data.CI_meter(index) = cumsum1(data.CI_meter(index));
     data.CO_meter(index) = cumsum1(data.CO_meter(index));
     data.games_meter(index) = cumsum1(data.games_meter(index));
+    
+    CI_meter = data.CI_meter(index);
+    data.delta_CI(index) = [NaN; CI_meter(2:end) - CI_meter(1:end-1)];
+    CO_meter = data.CO_meter(index);
+    data.delta_CO(index) = [NaN; CO_meter(2:end) - CO_meter(1:end-1)];
+    games_meter = data.games_meter(index);
+    data.delta_GP(index) = [NaN; games_meter(2:end) - games_meter(1:end-1)];
 end
 data.numericTime = data.numericTime/(24*60*60) + par.startTime;
 data.time = datetime(data.numericTime, 'ConvertFrom','datenum');
@@ -184,6 +205,7 @@ function par = setup
         disp('*** PLEASE SET A PREFERENCE FOR YOUR GDRIVE LOCATION ***');
         rethrow(err);
     end
-    par.scratchDir=fullfile(GDriveRoot, 'Synthetic_Dat_Gen', 'Data', 'scratch');
+    par.scratchDir=fullfile(GDriveRoot, 'Data', 'scratch');
+    par.scratchEVD = fullfile(par.scratchDir, 'EVD_gen_AddX');
     par.coordinationFilename = 'coordination';
 end

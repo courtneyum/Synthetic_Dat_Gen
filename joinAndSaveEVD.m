@@ -1,7 +1,6 @@
-function joinAndSaveEVD
+function joinAndSaveEVD(par)
 
-    par0 = setup;
-    load(par0.converterCoordinationFile);
+    load(fullfile(par.scratchEVD, par.converterCoordinationFile));
     par0 = coordination.par;
     fileTemplate=fullfile(par0.scratchEVD, [par0.EVDRootFilename, '*']);
     %[par0.transMatRootFileName, '.*']);
@@ -28,6 +27,20 @@ function joinAndSaveEVD
         data.time = datetime(data.numericTime, 'ConvertFrom','datenum');
         EVD = [EVD; data];
     end
+    
+    % Cut off last 3 days of data
+    days = floor(min(EVD.numericTime)):floor(max(EVD.numericTime));
+    daysToDelete = days(end-2:end);
+    for i=1:length(daysToDelete)
+        EVD(floor(EVD.numericTime) == daysToDelete(i), :) = [];
+    end
+    
+%     days = floor(min(sessions.t_start_numeric)):floor(max(sessions.t_start_numeric));
+%     daysToDelete = days(end-2:end);
+%     for i=1:length(daysToDelete)
+%         sessions(floor(sessions.t_start_numeric) == daysToDelete(i), :) = [];
+%     end
+    
     filename = fullfile(par0.dataDir, par0.EVDGenFilename);
     disp(['Saving EVD to ', filename]);
     save(filename, 'EVD');
@@ -61,5 +74,5 @@ function par = setup
         rethrow(err);
     end
 
-    par.converterCoordinationFile = fullfile(GDriveRoot, 'Synthetic_Dat_Gen', 'Data', 'scratch', 'coordination.mat');
+    par.converterCoordinationFile = fullfile(GDriveRoot, 'Data', 'scratch', 'coordination.mat');
 end
