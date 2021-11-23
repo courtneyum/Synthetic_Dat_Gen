@@ -1,11 +1,22 @@
-methodName = 'UnifOcc';
-load(['sessionData-GenSingle', methodName]);
-load(['EVDGen_Single', methodName, '.mat']);
-% load('EVD_datGenCarded.mat');
-% load('sessionData-AcresCarded.mat');
-
+methodName = 'Real';
+modifier = '';
+% load(['sessionData-GenSingle', methodName, modifier]);
+% load(['EVDGen_Single', methodName, modifier, '.mat']);
+% load(['visitsGen-', methodName, modifier, '.mat']);
+load('EVD_datGenCarded.mat');
+load('sessionData-AcresCarded.mat');
+load('visitsReal.mat');
 realPlotsDir = fullfile('figs', 'resultsReal', 'cardedOnly');
 saveDir = fullfile('C:\Users\cbonn\Documents\Thesis\Synthetic_Dat_Gen\Data\figs\resultsSingleProcess\staticReplacement', methodName);
+if ~isempty(modifier)
+    saveDir = fullfile(saveDir, modifier);
+end
+
+if strcmpi(methodName, 'real')
+    saveDir = realPlotsDir;
+end
+disp(['Saving plots to ', saveDir]);
+%saveDir = realPlotsDir;
 data = EVD;
 
 days = min(floor(data.numericTime)):max(floor(data.numericTime));
@@ -35,14 +46,15 @@ saveas(gcf, filename);
 
 % Events per day hist
 rootFilename = 'eventsPerDayHist';
-if ~strcmpi(methodName, 'real')
-    h = openfig(fullfile(realPlotsDir, rootFilename)); % make bin edges line up with real plot
-    ax = gca(h);
-    currhist = get(ax, 'Children');
-    binedges = currhist.BinEdges;
-else
-    binedges = [];
-end
+% if ~strcmpi(methodName, 'real')
+%     h = openfig(fullfile(realPlotsDir, rootFilename)); % make bin edges line up with real plot
+%     ax = gca(h);
+%     currhist = get(ax, 'Children');
+%     binedges = currhist.BinEdges;
+% else
+%     binedges = [];
+% end
+binedges = [];
 scrsz = get(0,'ScreenSize');
 h = figure('Position',scrsz); ax = gca(h);
 if isempty(binedges)
@@ -58,6 +70,53 @@ filename = fullfile(saveDir, [rootFilename, '.fig']);
 saveas(gcf, filename);
 filename = fullfile(saveDir, [rootFilename, '.png']);
 saveas(gcf, filename);
+
+% Sessions per day plot
+scrsz = get(0,'ScreenSize');
+h = figure('Position',scrsz); ax = gca(h);
+rootFilename = 'sessionsPerDay';
+days_cont = min(days):max(days);
+sessionsPerDay = zeros(length(days_cont) - 1, 1);
+for i=1:length(days_cont) - 1
+    sessionsPerDay(i) = sum(sessions.t_start_numeric >= days_cont(i) & sessions.t_start_numeric < days_cont(i+1));
+end
+plot(ax, sessionsPerDay);
+title(ax, ['Sessions Per Day (', methodName, ')']);
+xlabel(ax, 'Day');
+ylabel(ax, 'Number of Sessions');
+
+filename = fullfile(saveDir, [rootFilename, '.fig']);
+saveas(gcf, filename);
+filename = fullfile(saveDir, [rootFilename, '.png']);
+saveas(gcf, filename);
+
+% Sessions per day hist
+rootFilename = 'sessionsPerDayHist';
+% if ~strcmpi(methodName, 'real')
+%     h = openfig(fullfile(realPlotsDir, rootFilename)); % make bin edges line up with real plot
+%     ax = gca(h);
+%     currhist = get(ax, 'Children');
+%     binedges = currhist.BinEdges;
+% else
+%     binedges = [];
+% end
+binedges = [];
+scrsz = get(0,'ScreenSize');
+h = figure('Position',scrsz); ax = gca(h);
+if isempty(binedges)
+    histogram(ax, sessionsPerDay(1:end-1));
+else
+    histogram(ax, sessionsPerDay(1:end-1), binedges);
+end
+title(ax, ['Sessions Per Day (', methodName, ')']);
+xlabel(ax, 'Sessions Per Day');
+ylabel(ax, 'Count');
+
+filename = fullfile(saveDir, [rootFilename, '.fig']);
+saveas(gcf, filename);
+filename = fullfile(saveDir, [rootFilename, '.png']);
+saveas(gcf, filename);
+
 
 % Players per day plot
 scrsz = get(0,'ScreenSize');
@@ -80,14 +139,15 @@ saveas(gcf, filename);
 
 
 rootFilename = 'playersPerDayEventDataHist';
-if ~strcmpi(methodName, 'real')
-    h = openfig(fullfile(realPlotsDir, rootFilename)); % make bin edges line up with real plot
-    ax = gca(h);
-    currhist = get(ax, 'Children');
-    binedges = currhist.BinEdges;
-else
-    binedges = [];
-end
+% if ~strcmpi(methodName, 'real')
+%     h = openfig(fullfile(realPlotsDir, rootFilename)); % make bin edges line up with real plot
+%     ax = gca(h);
+%     currhist = get(ax, 'Children');
+%     binedges = currhist.BinEdges;
+% else
+%     binedges = [];
+% end
+binedges = [];
 scrsz = get(0,'ScreenSize');
 h = figure('Position',scrsz); ax = gca(h);
 if isempty(binedges)
@@ -124,14 +184,15 @@ saveas(gcf, filename);
 
 
 rootFilename = 'playersPerDaySessionDataHist';
-if ~ strcmpi(methodName, 'real')
-    h = openfig(fullfile(realPlotsDir, rootFilename)); % make bin edges line up with real plot
-    ax = gca(h);
-    currhist = get(ax, 'Children');
-    binedges = currhist.BinEdges;
-else
-    binedges = [];
-end
+% if ~ strcmpi(methodName, 'real')
+%     h = openfig(fullfile(realPlotsDir, rootFilename)); % make bin edges line up with real plot
+%     ax = gca(h);
+%     currhist = get(ax, 'Children');
+%     binedges = currhist.BinEdges;
+% else
+%     binedges = [];
+% end
+binedges = [];
 scrsz = get(0,'ScreenSize');
 h = figure('Position',scrsz); ax = gca(h);
 if isempty(binedges)
@@ -183,14 +244,15 @@ saveas(gcf, filename);
 
 
 rootFilename = 'machinesPerDayEventDataHist';
-if ~strcmpi(methodName, 'real')
-    h = openfig(fullfile(realPlotsDir, rootFilename)); % make bin edges line up with real plot
-    ax = gca(h);
-    currhist = get(ax, 'Children');
-    binedges = currhist.BinEdges;
-else
-    binedges = [];
-end
+% if ~strcmpi(methodName, 'real')
+%     h = openfig(fullfile(realPlotsDir, rootFilename)); % make bin edges line up with real plot
+%     ax = gca(h);
+%     currhist = get(ax, 'Children');
+%     binedges = currhist.BinEdges;
+% else
+%     binedges = [];
+% end
+binedges = [];
 scrsz = get(0,'ScreenSize');
 h = figure('Position',scrsz); ax = gca(h);
 if isempty(binedges)
@@ -228,14 +290,15 @@ saveas(gcf, filename);
 
 
 rootFilename = 'machinesPerDaySessionDataHist';
-if ~strcmpi(methodName, 'real')
-    h = openfig(fullfile(realPlotsDir, rootFilename)); % make bin edges line up with real plot
-    ax = gca(h);
-    currhist = get(ax, 'Children');
-    binedges = currhist.BinEdges;
-else
-    binedges = [];
-end
+% if ~strcmpi(methodName, 'real')
+%     h = openfig(fullfile(realPlotsDir, rootFilename)); % make bin edges line up with real plot
+%     ax = gca(h);
+%     currhist = get(ax, 'Children');
+%     binedges = currhist.BinEdges;
+% else
+%     binedges = [];
+% end
+binedges = [];
 scrsz = get(0,'ScreenSize');
 h = figure('Position',scrsz); ax = gca(h);
 if isempty(binedges)
@@ -265,7 +328,10 @@ end
 
 scrsz = get(0,'ScreenSize');
 h = figure('Position',scrsz); ax = gca(h);
-data = sortrows(data, [2,9]);
+varNames = data.Properties.VariableNames;
+colIndex = strcmp(varNames, 'machineNumber') | strcmp(varNames, 'numericTime');
+colIndex = find(colIndex);
+data = sortrows(data, colIndex);
 uniqueMachineNumbers = unique(data.machineNumber);
 deltaCI = data.delta_CI;
 deltaCI(deltaCI < 0) = [];
@@ -419,7 +485,10 @@ data.secondTime = data.secondTime - minSecondTime;
 data.secondTime = round(data.secondTime);
 uniqueMachines = unique(data.machineNumber);
 timeElapsed = NaN(size(data.machineNumber));
-data = sortrows(data, [2,9]);
+varNames = data.Properties.VariableNames;
+colIndex = strcmp(varNames, 'machineNumber') | strcmp(varNames, 'numericTime');
+colIndex = find(colIndex);
+data = sortrows(data, colIndex);
 for i=1:length(uniqueMachines)
     secondTime = data.secondTime(data.machineNumber == uniqueMachines(i));
     timeDiffs = [NaN; secondTime(2:end) - secondTime(1:end-1)];
@@ -546,6 +615,48 @@ end
 xlabel(ax, 'Games Per Minute');
 ylabel(ax, 'Count');
 title(ax, ['Games Per Minute Histogram (', methodName, ')']);
+filename = fullfile(saveDir, [rootFilename, '.fig']);
+saveas(gcf, filename);
+filename = fullfile(saveDir, [rootFilename, '.png']);
+saveas(gcf, filename);
+
+% Number of players in casino, 30 minute time intervals
+dt = 1/(24*60);
+startColIndex = find(strcmp(visits.Properties.VariableNames, 't_start_numeric'));
+endColIndex = find(strcmp(visits.Properties.VariableNames, 't_end_numeric'));
+m1=visits.t_start_numeric/dt + 1;
+%Eliminate internal rounding errors
+index = abs(m1 - round(m1)) < 10^-6;
+if any(index)
+    m1(index) = round(m1(index));
+end
+m1 = floor(m1);
+
+m2=visits.t_end_numeric/dt + 1;
+%Eliminate internal rounding errors (If within 0.2 seconds of the
+%boundary, we're probably supposed to be on the boundary)
+index = abs(m2 - round(m2)) < 10^-4;
+if any(index)
+    m2(index) = round(m2(index));
+end
+m2 = floor(m2);
+
+m = min([m1; m2]):max([m1; m2]);
+m = m(:);
+playerCount = zeros(size(m));
+for i=1:length(playerCount)
+    playerCount(i) = sum(m1 <= m(i) & m2 >= m(i));
+end
+
+scrsz = get(0,'ScreenSize');
+h=figure('Position',scrsz); ax=gca(h);
+histogram(ax, playerCount);
+title(ax, ['Number of Players Present in a Given 30 Minute Interval (', methodName, ')']);
+xlabel(ax, 'Number of Players');
+ylabel(ax, 'Count');
+annotation('textbox',[0.75 0.75 0.005 0.005], 'String',['Mean = ', num2str(mean(playerCount))],'FitBoxToText','on');
+
+rootFilename = 'playersPerInterval';
 filename = fullfile(saveDir, [rootFilename, '.fig']);
 saveas(gcf, filename);
 filename = fullfile(saveDir, [rootFilename, '.png']);
