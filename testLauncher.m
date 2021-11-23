@@ -14,8 +14,12 @@ coordination.mean_error_prob = zeros(length(testValues), par.numTests);
 coordination.mean_error_trad = coordination.mean_error_prob;
 coordination.mean_error_est = coordination.mean_error_prob;
 coordination.mean_error_new = coordination.mean_error_prob;
-coordination.num_iters = coordination.mean_error_prob;
-coordination.error = zeros(length(testValues), par.NSteps);
+coordination.max_error_prob = zeros(length(testValues), par.numTests);
+coordination.max_error_trad = coordination.mean_error_prob;
+coordination.max_error_est = coordination.mean_error_prob;
+coordination.max_error_new = coordination.mean_error_prob;
+% coordination.num_iters = coordination.mean_error_prob;
+% coordination.error = zeros(length(testValues), par.NSteps);
 coordination.reservedMachineNumbers = struct;
 coordination.(par.testField) = testValues;
 coordination.par = par;
@@ -55,20 +59,21 @@ if par.NCores > 1
         unix(cmd);
     end
 else
-    epsilonComparisonTestResults(1);
+    test(1);
     joinAndViewTests;
 end
 end
 
 function par=setup
 par.NMachines=5;
-par.NPlayers = 3;
-par.NSteps=1e8;
-par.alpha = -1:0.1:1;
+par.NPlayers = 2;
+par.NSteps=10.^(3:9);
+%par.alpha = -1:0.1:1;
+par.alpha = -1;
 par.precision = 1e-3;
 par.PNoMove=0.9;
-par.numTests = 1;
-par.testName = 'epsilonComparisonTestResults';
+par.numTests = 5;
+par.testName = 'test';
 
 par.NCores = 5;
 % par.matlabStartupCmd=strrep(which('addpath'),...
@@ -88,5 +93,5 @@ else
     par.testField = 'NMachines';
 end
 
-par.scratchDir = 'K:\My Drive\School\Thesis\Synthetic_Dat_Gen\Data\scratch\tests';
+par.scratchDir = 'C:\Users\cbonn\Documents\Thesis\Synthetic_Dat_Gen\Data\scratch\tests\tests';
 end

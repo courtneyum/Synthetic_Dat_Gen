@@ -1,6 +1,5 @@
 function casino = TM_test(par)
 %par=setup;
-
 % Initialize a random TM: expresses probabilities that a player DESIRES to
 % move from machine A to B.
 % randomMatrix = rand(par.NMachines); % represents player preferences
@@ -8,7 +7,7 @@ function casino = TM_test(par)
 % casino.TM0(casino.TM0 == 1) = par.PNoMove*randomMatrix(casino.TM0 == 1);
 % casino.TM0(casino.TM0 == 0) = (1-par.PNoMove)*randomMatrix(casino.TM0 == 0);
 
-rng(1);
+rng('shuffle');
 casino.TM0=par.PNoMove*eye(par.NMachines)+(1-par.PNoMove)*rand(par.NMachines);
 casino.TM0_sum=cumsum(casino.TM0,2);
 TM_norm=casino.TM0_sum(:,end);
@@ -88,7 +87,7 @@ for i=1:par.NMachines
     for j=1:par.NMachines
         if i == j
             TM(i,j)=casino.P_move(i,j);
-            TM_est(i,j) = (casino.moves(i,j)+beta)/(N_i + sqrt(N_i));
+            
         else
             % Calculate probability that j is occupied under the condition
             % that i is occupied. Basic equation here is:
@@ -99,7 +98,7 @@ for i=1:par.NMachines
 %             TM_est(i,j)=(casino.moves(i,j)+beta)/(N_i + sqrt(N_i));
 %             TM_est(i,j) = TM_est(i,j)/P_j_is_unocc;
         end
-         
+         TM_est(i,j) = (casino.moves(i,j)+beta)/(N_i + sqrt(N_i));
     end
 end
 % Normalize.
