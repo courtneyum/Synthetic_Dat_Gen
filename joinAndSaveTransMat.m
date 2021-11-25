@@ -58,60 +58,50 @@ function joinAndSaveTransMat
     par0.delta = delta;
     par = par0;
     
-%     load('K:\My Drive\School\Thesis\Synthetic_Dat_Gen\Data\sessionData-AcresNew.mat');
-%     load('K:\My Drive\School\Thesis\Synthetic_Dat_Gen\Data\EVD_datGen.mat');
-%     timeAlive = zeros(size(par.uniqueMachineNumbers));
-%     for i=1:length(par.uniqueMachineNumbers)
-%         EVD_index = EVD.machineNumber == par.uniqueMachineNumbers(i);
-%         timeAlive(i) = max(EVD.numericTime(EVD_index)) - min(EVD.numericTime(EVD_index));
-%     end
+    % get occupancy probability matrix if not already computed
+    load('K:\My Drive\School\Thesis\Synthetic_Dat_Gen\Data\sessionData-AcresNew.mat');
+    load('K:\My Drive\School\Thesis\Synthetic_Dat_Gen\Data\EVD_datGen.mat');
+    timeAlive = zeros(size(par.uniqueMachineNumbers));
+    for i=1:length(par.uniqueMachineNumbers)
+        EVD_index = EVD.machineNumber == par.uniqueMachineNumbers(i);
+        timeAlive(i) = max(EVD.numericTime(EVD_index)) - min(EVD.numericTime(EVD_index));
+    end
     
-%     time_i_occ_j_occ = zeros(par.N);
-%     time_i_occ = zeros(par.N, 1);
-%     for i=1:height(sessions)
-%         session_i = sessions(i, :);
-%         time_i_occ(par.uniqueMachineNumbers == session_i.machineNumber) = time_i_occ(par.uniqueMachineNumbers == session_i.machineNumber) + session_i.duration_numeric;
-%         
-%         sessionIndex = sessions.t_start_numeric >= session_i.t_start_numeric & sessions.t_start_numeric < session_i.t_end_numeric;
-%         sessionIndex = sessionIndex | (sessions.t_end_numeric > session_i.t_start_numeric & sessions.t_end_numeric <= session_i.t_end_numeric);
-%         sessions_j = sessions(sessionIndex, :);
-%         for j=1:height(sessions_j)
-%             session_j = sessions_j(j, :);
-%             index_i = par.uniqueMachineNumbers == session_i.machineNumber;
-%             index_j = par.uniqueMachineNumbers == session_j.machineNumber;
-%             
-%             if session_j.t_start_numeric  >= session_i.t_start_numeric && session_j.t_end_numeric <= session_i.t_end_numeric
-%                 %session j is fully enclosed within session i
-%                 time_i_occ_j_occ(index_i, index_j) = time_i_occ_j_occ(index_i, index_j) + session_j.duration_numeric;
-%             elseif session_j.t_start_numeric < session_i.t_start_numeric && session_j.t_end_numeric < session_i.t_end_numeric
-%                 %tail end of session j overlaps with session i
-%                 time_i_occ_j_occ(index_i, index_j) = time_i_occ_j_occ(index_i, index_j) + session_j.t_end_numeric - session_i.t_start_numeric;
-%             elseif session_j.t_start_numeric > session_i.t_start_numeric && session_j.t_end_numeric > session_i.t_end_numeric
-%                 %beginning of session j overlaps with session i
-%                 time_i_occ_j_occ(index_i, index_j) = time_i_occ_j_occ(index_i, index_j) + session_i.t_end_numeric - session_j.t_start_numeric;
-%             end
-%         end
-%     end
-%     prob_i_occ = time_i_occ./timeAlive;
-%     prob_i_occ_j_unocc = repmat(prob_i_occ, 1, par.N) - time_i_occ_j_occ./timeAlive; % 1 = P(i occ) + P(i unocc) = P(i occ & j occ) + P(i occ & j unocc) + P(i unocc)
-%     
-%     par.Q = prob_i_occ_j_unocc./prob_i_occ; %The probability that j is unoccupied given that i is occupied
+    time_i_occ_j_occ = zeros(par.N);
+    time_i_occ = zeros(par.N, 1);
+    for i=1:height(sessions)
+        session_i = sessions(i, :);
+        time_i_occ(par.uniqueMachineNumbers == session_i.machineNumber) = time_i_occ(par.uniqueMachineNumbers == session_i.machineNumber) + session_i.duration_numeric;
+        
+        sessionIndex = sessions.t_start_numeric >= session_i.t_start_numeric & sessions.t_start_numeric < session_i.t_end_numeric;
+        sessionIndex = sessionIndex | (sessions.t_end_numeric > session_i.t_start_numeric & sessions.t_end_numeric <= session_i.t_end_numeric);
+        sessions_j = sessions(sessionIndex, :);
+        for j=1:height(sessions_j)
+            session_j = sessions_j(j, :);
+            index_i = par.uniqueMachineNumbers == session_i.machineNumber;
+            index_j = par.uniqueMachineNumbers == session_j.machineNumber;
+            
+            if session_j.t_start_numeric  >= session_i.t_start_numeric && session_j.t_end_numeric <= session_i.t_end_numeric
+                %session j is fully enclosed within session i
+                time_i_occ_j_occ(index_i, index_j) = time_i_occ_j_occ(index_i, index_j) + session_j.duration_numeric;
+            elseif session_j.t_start_numeric < session_i.t_start_numeric && session_j.t_end_numeric < session_i.t_end_numeric
+                %tail end of session j overlaps with session i
+                time_i_occ_j_occ(index_i, index_j) = time_i_occ_j_occ(index_i, index_j) + session_j.t_end_numeric - session_i.t_start_numeric;
+            elseif session_j.t_start_numeric > session_i.t_start_numeric && session_j.t_end_numeric > session_i.t_end_numeric
+                %beginning of session j overlaps with session i
+                time_i_occ_j_occ(index_i, index_j) = time_i_occ_j_occ(index_i, index_j) + session_i.t_end_numeric - session_j.t_start_numeric;
+            end
+        end
+    end
+    prob_i_occ = time_i_occ./timeAlive;
+    prob_i_occ_j_unocc = repmat(prob_i_occ, 1, par.N) - time_i_occ_j_occ./timeAlive; % 1 = P(i occ) + P(i unocc) = P(i occ & j occ) + P(i occ & j unocc) + P(i unocc)
+    
+    par.Q = prob_i_occ_j_unocc./prob_i_occ; %The probability that j is unoccupied given that i is occupied
     
     
     [i_in, j_in, s_in] = find(par.trans_mat.cardIn);
     [i_out, j_out, s_out] = find(par.trans_mat.cardOut);
 
-%     Remove transitions that only occur a few times. There is insufficient
-%     data for these. This doesn't work, it just creates different cycles when
-%     all other transitions only occur less than 5 times
-%     index = s_in < 5;
-%     s_in(index) = [];
-%     i_in(index) = [];
-%     j_in(index) = [];
-%     index = s_out < 5;
-%     s_out(index) = [];
-%     i_out(index) = [];
-%     j_out(index) = [];
 
     if ~any(i_in == par.N*par.E) || ~any(j_in == par.N*par.E)
         i_in = [i_in; par.N*par.E];
