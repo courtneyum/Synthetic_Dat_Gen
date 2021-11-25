@@ -1,4 +1,4 @@
-function generateData_launcher
+function generateData_Launcher
     par = setup;
     if ispc
         [~,par.matlabStartupCmd]=fileparts(par.matlabStartupCmd);
