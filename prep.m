@@ -167,14 +167,14 @@ uniquePlayers(isnan(uniquePlayers)) = [];
 J = length(uniquePlayers);
 par.J = J;
 par.uniquePlayers = uniquePlayers;
-par = setupForTransMatBuild(par);
-save('K:\My Drive\School\Thesis\Synthetic_Dat_Gen\Data\par0.mat', 'par');
-buildTransitionMatrices_Launcher(par);
-load(fullfile(par.dataDir, par.transMatFilename));
-
-%Build transition matrix using probability update method, requires building
-%of transition matrix via uniform occupancy first
-par = buildTransMatProbUpdate(par);
+% par = setupForTransMatBuild(par);
+save('K:\My Drive\School\Thesis\Synthetic_Dat_Gen\Data\par0.mat', 'par'); % par0 denotes a par structure ready for building probability matrices and distributions
+% buildTransitionMatrices_Launcher(par);
+% load(fullfile(par.dataDir, par.transMatFilename));
+% 
+% %Build transition matrix using probability update method, requires building
+% %of transition matrix via uniform occupancy first
+% par = buildTransMatProbUpdate(par);
 
 
 % Below, we average the diagonal blocks of the transition matrix, normalized and unnormalized, 
@@ -207,7 +207,7 @@ function par = setupForTransMatBuild(par)
         rethrow(err);
     end
     
-    par.transMatFilename = 'parTest';
+    par.transMatFilename = 'parUnifOcc';
     par.dataDir = fullfile(GDriveRoot, 'Synthetic_Dat_Gen', 'Data');
-    par.numCores = 8;
+    par.NCores = 8;
 end
