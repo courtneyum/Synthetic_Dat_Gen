@@ -94,5 +94,5 @@ function par = setup
     par.params.num_iters = 1e5;
     par.params.J = 100;
     par.params.timeout = 2*3600; % 2 hr timeout in seconds
-    par.params.EVD.filename = fullfile(par.dataDir, 'EVD_datGen.mat');
+    par.params.EVD.filename = fullfile(par.dataDir, par.EVDFilename);
 end
