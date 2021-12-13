@@ -62,12 +62,19 @@ function par = setup
     end
     
     par.methodName = 'AddX';
+    par.filenameModifier = 'HighOcc';
 
     % Scratch directory.
     par.scratchDir=fullfile(GDriveRoot, 'Data', 'scratch');
     par.scratchEVD=fullfile(par.scratchDir, ['EVD_gen_', par.methodName]);
     par.EVDRootFilename=['EVD4Single',par.methodName];
     par.NCores=1;
+    
+    if par.NCores > 1
+        par.multiProcessModifier = 'Multi';
+    else
+        par.multiProcessModifier = 'Single';
+    end
     par.matlabStartupCmd=strrep(which('addpath'),...
         fullfile('toolbox', 'matlab', 'general', 'addpath.m'),...
         fullfile('bin', 'matlab'));
@@ -77,7 +84,7 @@ function par = setup
     par.converterCoordinationFile = 'coordination';
     par.dataDir = fullfile(GDriveRoot, 'Data');
     par.EVDFilename = 'EVD_datGen.mat';
-    par.EVDGenFilename = ['EVDGen_Single', par.methodName, 'HighOcc'];
+    par.EVDGenFilename = ['EVDGen_', par.multiProcessModifier, par.methodName, par.filenameModifier];
     par.paramsFilename = ['par', par.methodName, '.mat'];
     par.loadCheckpoint = true;
     params = load(fullfile(par.dataDir, par.paramsFilename));
@@ -87,5 +94,5 @@ function par = setup
     par.params.num_iters = 1e5;
     par.params.J = 100;
     par.params.timeout = 2*3600; % 2 hr timeout in seconds
-    par.params.EVD.filename = fullfile(par.dataDir, 'EVD_datGen.mat');
+    par.params.EVD.filename = fullfile(par.dataDir, par.EVDFilename);
 end

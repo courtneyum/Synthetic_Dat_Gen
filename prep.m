@@ -161,7 +161,7 @@ clear("EVD_n");
 % In the following section, the number of transitions made from each event to each other event is calculated.
 % 
 
-%Build transition matrix using uniform occupancy method
+% Save created par structure in 'par0.mat'
 uniquePlayers = unique(EVD.patronID);
 uniquePlayers(isnan(uniquePlayers)) = [];
 J = length(uniquePlayers);
