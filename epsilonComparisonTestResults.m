@@ -29,5 +29,5 @@ save(fullfile(par.scratchDir, ['coordination', num2str(pid)]), 'coordination', '
 end
 
 function par = setup
-    par.scratchDir = 'K:\My Drive\School\Thesis\Synthetic_Dat_Gen\Data\scratch\tests';
+    par.scratchDir = 'C:\Users\cbonn\Documents\Thesis\Synthetic_Dat_Gen\Data\scratch\tests';
 end
