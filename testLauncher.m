@@ -59,7 +59,9 @@ if par.NCores > 1
         unix(cmd);
     end
 else
-    test(1);
+    %test(1);
+    f = par.testFunctionHandle;
+    f(1);
     joinAndViewTests;
 end
 end
@@ -67,15 +69,15 @@ end
 function par=setup
 par.NMachines=5;
 par.NPlayers = 2;
-par.NSteps=10.^(3:9);
-%par.alpha = -1:0.1:1;
-par.alpha = -1;
+par.NSteps=10.^8;
+par.alpha = -1:0.1:1;
 par.precision = 1e-3;
 par.PNoMove=0.9;
-par.numTests = 5;
-par.testName = 'test';
+par.numTests = 1;
+par.testName = 'epsilonComparisonTestResults';
+par.testFunctionHandle = @epsilonComparisonTestResults;
 
-par.NCores = 5;
+par.NCores = 1;
 % par.matlabStartupCmd=strrep(which('addpath'),...
 %     fullfile('toolbox', 'matlab', 'general', 'addpath.m'),...
 %     fullfile('bin', 'matlab'));
@@ -93,5 +95,5 @@ else
     par.testField = 'NMachines';
 end
 
-par.scratchDir = 'C:\Users\cbonn\Documents\Thesis\Synthetic_Dat_Gen\Data\scratch\tests\tests';
+par.scratchDir = 'C:\Users\cbonn\Documents\Thesis\Synthetic_Dat_Gen\Data\scratch\tests';
 end
