@@ -8,6 +8,7 @@ index = cellfun(@isempty, index);
 files = files(index);
 weighted = zeros(size(files));
 %weighted(1:2) = 1;
+files(9) = [];
 
 
 cd 'C:\Users\cbonn\Documents\Thesis\Synthetic_Dat_Gen';
