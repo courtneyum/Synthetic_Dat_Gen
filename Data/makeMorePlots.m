@@ -1,11 +1,16 @@
-methodName = 'Real';
+methodName = 'UnifOcc';
 modifier = '';
-% load(['sessionData-GenSingle', methodName, modifier]);
-% load(['EVDGen_Single', methodName, modifier, '.mat']);
-% load(['visitsGen-', methodName, modifier, '.mat']);
-load('EVD_datGenCarded.mat');
-load('sessionData-AcresCarded.mat');
-load('visitsReal.mat');
+
+if strcmpi(methodName, 'real')
+    load('EVD_datGenCarded.mat');
+    load('sessionData-AcresCarded.mat');
+    load('visitsReal.mat');
+else
+    load(['sessionData-GenSingle', methodName, modifier]);
+    load(['EVDGen_Single', methodName, modifier, '.mat']);
+    load(['visitsGen-', methodName, modifier, '.mat']);
+end
+
 realPlotsDir = fullfile('figs', 'resultsReal', 'cardedOnly');
 saveDir = fullfile('C:\Users\cbonn\Documents\Thesis\Synthetic_Dat_Gen\Data\figs\resultsSingleProcess\staticReplacement', methodName);
 if ~isempty(modifier)
@@ -26,8 +31,10 @@ days = days(1:floor(0.95*length(days)));
 days = [days; days(end) + 1];
 
 % Events per day plot
-scrsz = get(0,'ScreenSize');
-h = figure('Position',scrsz); ax = gca(h);
+h = figure;
+h.Position(3) = 800;
+h.Position(4) = 660;
+ax = gca(h);
 rootFilename = 'eventsPerDay';
 days_cont = min(days):max(days);
 eventsPerDay = zeros(length(days_cont) - 1, 1);
@@ -55,8 +62,10 @@ rootFilename = 'eventsPerDayHist';
 %     binedges = [];
 % end
 binedges = [];
-scrsz = get(0,'ScreenSize');
-h = figure('Position',scrsz); ax = gca(h);
+h = figure;
+h.Position(3) = 800;
+h.Position(4) = 660; 
+ax = gca(h);
 if isempty(binedges)
     histogram(ax, eventsPerDay(1:end-1));
 else
@@ -72,8 +81,10 @@ filename = fullfile(saveDir, [rootFilename, '.png']);
 saveas(gcf, filename);
 
 % Sessions per day plot
-scrsz = get(0,'ScreenSize');
-h = figure('Position',scrsz); ax = gca(h);
+h = figure;
+h.Position(3) = 800;
+h.Position(4) = 660; 
+ax = gca(h);
 rootFilename = 'sessionsPerDay';
 days_cont = min(days):max(days);
 sessionsPerDay = zeros(length(days_cont) - 1, 1);
@@ -101,8 +112,10 @@ rootFilename = 'sessionsPerDayHist';
 %     binedges = [];
 % end
 binedges = [];
-scrsz = get(0,'ScreenSize');
-h = figure('Position',scrsz); ax = gca(h);
+h = figure;
+h.Position(3) = 800;
+h.Position(4) = 660; 
+ax = gca(h);
 if isempty(binedges)
     histogram(ax, sessionsPerDay(1:end-1));
 else
@@ -119,8 +132,10 @@ saveas(gcf, filename);
 
 
 % Players per day plot
-scrsz = get(0,'ScreenSize');
-h = figure('Position',scrsz); ax = gca(h);
+h = figure;
+h.Position(3) = 800;
+h.Position(4) = 660; 
+ax = gca(h);
 rootFilename = 'playersPerDayEventData';
 playersPerDay = zeros(length(days_cont) - 1, 1);
 for i=1:length(days_cont) - 1
@@ -148,8 +163,10 @@ rootFilename = 'playersPerDayEventDataHist';
 %     binedges = [];
 % end
 binedges = [];
-scrsz = get(0,'ScreenSize');
-h = figure('Position',scrsz); ax = gca(h);
+h = figure;
+h.Position(3) = 800;
+h.Position(4) = 660; 
+ax = gca(h);
 if isempty(binedges)
     histogram(ax, playersPerDay);
 else
@@ -164,8 +181,10 @@ saveas(gcf, filename);
 filename = fullfile(saveDir, [rootFilename, '.png']);
 saveas(gcf, filename);
 
-scrsz = get(0,'ScreenSize');
-h = figure('Position',scrsz); ax = gca(h);
+h = figure;
+h.Position(3) = 800;
+h.Position(4) = 660; 
+ax = gca(h);
 rootFilename = 'playersPerDaySessionData';
 playersPerDay = zeros(length(days_cont) - 1, 1);
 for i=1:length(days_cont) - 1
@@ -193,8 +212,10 @@ rootFilename = 'playersPerDaySessionDataHist';
 %     binedges = [];
 % end
 binedges = [];
-scrsz = get(0,'ScreenSize');
-h = figure('Position',scrsz); ax = gca(h);
+h = figure;
+h.Position(3) = 800;
+h.Position(4) = 660; 
+ax = gca(h);
 if isempty(binedges)
     histogram(ax, playersPerDay);
 else
@@ -222,8 +243,10 @@ for i=1:length(days_cont) - 1
     machines = data.machineNumber(data.numericTime >= days_cont(i) & data.numericTime < days_cont(i+1));
     machinesPerDay(i) = length(unique(machines));
 end
-scrsz = get(0,'ScreenSize');
-h = figure('Position',scrsz); ax = gca(h);
+h = figure;
+h.Position(3) = 800;
+h.Position(4) = 660; 
+ax = gca(h);
 plot(ax, machinesPerDay);
 
 if ~strcmpi(methodName, 'real')
@@ -253,8 +276,10 @@ rootFilename = 'machinesPerDayEventDataHist';
 %     binedges = [];
 % end
 binedges = [];
-scrsz = get(0,'ScreenSize');
-h = figure('Position',scrsz); ax = gca(h);
+h = figure;
+h.Position(3) = 800;
+h.Position(4) = 660; 
+ax = gca(h);
 if isempty(binedges)
     histogram(ax, machinesPerDay);
 else
@@ -276,8 +301,10 @@ for i=1:length(days_cont) - 1
     machines = sessions.machineNumber(sessions.t_start_numeric >= days_cont(i) & sessions.t_start_numeric < days_cont(i+1));
     machinesPerDay(i) = length(unique(machines));
 end
-scrsz = get(0,'ScreenSize');
-h = figure('Position',scrsz); ax = gca(h);
+h = figure;
+h.Position(3) = 800;
+h.Position(4) = 660; 
+ax = gca(h);
 plot(ax, machinesPerDay);
 title(ax, ['Active Machines Per Day From Session Data (', methodName, ')']);
 xlabel(ax, 'Day');
@@ -299,8 +326,10 @@ rootFilename = 'machinesPerDaySessionDataHist';
 %     binedges = [];
 % end
 binedges = [];
-scrsz = get(0,'ScreenSize');
-h = figure('Position',scrsz); ax = gca(h);
+h = figure;
+h.Position(3) = 800;
+h.Position(4) = 660; 
+ax = gca(h);
 if isempty(binedges)
     histogram(ax, machinesPerDay);
 else
@@ -326,8 +355,10 @@ else
     binedges = [];
 end
 
-scrsz = get(0,'ScreenSize');
-h = figure('Position',scrsz); ax = gca(h);
+h = figure;
+h.Position(3) = 800;
+h.Position(4) = 660; 
+ax = gca(h);
 varNames = data.Properties.VariableNames;
 colIndex = strcmp(varNames, 'machineNumber') | strcmp(varNames, 'numericTime');
 colIndex = find(colIndex);
@@ -361,8 +392,10 @@ end
 deltaGP = data.delta_GP;
 deltaGP(deltaGP < 0) = [];
 
-scrsz = get(0,'ScreenSize');
-h = figure('Position',scrsz); ax = gca(h);
+h = figure;
+h.Position(3) = 800;
+h.Position(4) = 660; 
+ax = gca(h);
 if isempty(binedges)
     histogram(ax, log10(deltaGP));
 else
@@ -386,8 +419,10 @@ if ~strcmpi(methodName, 'real')
 else
     binedges = [];
 end
-scrsz = get(0,'ScreenSize');
-h = figure('Position',scrsz); ax = gca(h);
+h = figure;
+h.Position(3) = 800;
+h.Position(4) = 660; 
+ax = gca(h);
 
 if isempty(binedges)
     histogram(ax, data.machineIndex(~isnan(data.patronID)));
@@ -411,8 +446,10 @@ if ~strcmpi(methodName, 'real')
 else
     binedges = [];
 end
-scrsz = get(0,'ScreenSize');
-h = figure('Position',scrsz); ax = gca(h);
+h = figure;
+h.Position(3) = 800;
+h.Position(4) = 660; 
+ax = gca(h);
 
 if isempty(binedges)
     histogram(ax, sessions.machineIndex);
@@ -437,8 +474,10 @@ if ~strcmpi(methodName, 'real')
 else
     binedges = [];
 end
-scrsz = get(0,'ScreenSize');
-h = figure('Position',scrsz); ax = gca(h);
+h = figure;
+h.Position(3) = 800;
+h.Position(4) = 660; 
+ax = gca(h);
 rootFilename = 'playerIndexEventDataHist';
 if isempty(binedges)
     histogram(ax, data.playerIndex(data.playerIndex ~= 0));
@@ -462,8 +501,10 @@ if ~strcmpi(methodName, 'real')
 else
     binedges = [];
 end
-scrsz = get(0,'ScreenSize');
-h = figure('Position',scrsz); ax = gca(h);
+h = figure;
+h.Position(3) = 800;
+h.Position(4) = 660; 
+ax = gca(h);
 if isempty(binedges)
     histogram(ax, sessions.playerIndex(sessions.playerIndex ~= 0));
 else
@@ -504,8 +545,10 @@ if ~strcmpi(methodName, 'real')
 else
     binedges = [];
 end
-scrsz = get(0,'ScreenSize');
-h = figure('Position',scrsz); ax = gca(h);
+h = figure;
+h.Position(3) = 800;
+h.Position(4) = 660; 
+ax = gca(h);
 if isempty(binedges)
     histogram(ax, log10(timeElapsed));
 else
@@ -529,8 +572,10 @@ if ~strcmpi(methodName, 'real')
 else
     binedges = [];
 end
-scrsz = get(0,'ScreenSize');
-h = figure('Position',scrsz); ax = gca(h);
+h = figure;
+h.Position(3) = 800;
+h.Position(4) = 660; 
+ax = gca(h);
 if isempty(binedges)
     histogram(ax, log10(sessions.gamesPlayed));
 else
@@ -554,8 +599,10 @@ if ~strcmpi(methodName, 'real')
 else
     binedges = [];
 end
-scrsz = get(0,'ScreenSize');
-h = figure('Position',scrsz); ax=gca(h);
+h = figure;
+h.Position(3) = 800;
+h.Position(4) = 660; 
+ax = gca(h);
 if isempty(binedges)
     histogram(ax, log10(1+sessions.CI));
 else
@@ -570,8 +617,10 @@ filename = fullfile(saveDir, [rootFilename, '.png']);
 saveas(gcf, filename);
 
 % Session duration
-scrsz = get(0,'ScreenSize');
-rootFilename = 'durationHist';
+h = figure;
+h.Position(3) = 800;
+h.Position(4) = 660; 
+ax = gca(h);
 if ~strcmpi(methodName, 'real')
     h = openfig(fullfile(realPlotsDir, rootFilename)); % make bin edges line up with real plot
     ax = gca(h);
@@ -580,7 +629,10 @@ if ~strcmpi(methodName, 'real')
 else
     binedges = [];
 end
-h=figure('Position',scrsz); ax=gca(h);
+h = figure;
+h.Position(3) = 800;
+h.Position(4) = 660; 
+ax = gca(h);
 if isempty(binedges)
     histogram(ax, log10(sessions.duration_numeric));
 else
@@ -604,8 +656,10 @@ if ~strcmpi(methodName, 'real')
 else
     binedges = [];
 end
-scrsz = get(0,'ScreenSize');
-h=figure('Position',scrsz); ax=gca(h);
+h = figure;
+h.Position(3) = 800;
+h.Position(4) = 660; 
+ax = gca(h);
 gamesPerMinute = sessions.gamesPlayed./(sessions.duration_numeric*24*60);
 if isempty(binedges)
     histogram(ax, log10(gamesPerMinute));
@@ -648,8 +702,10 @@ for i=1:length(playerCount)
     playerCount(i) = sum(m1 <= m(i) & m2 >= m(i));
 end
 
-scrsz = get(0,'ScreenSize');
-h=figure('Position',scrsz); ax=gca(h);
+h = figure;
+h.Position(3) = 800;
+h.Position(4) = 660; 
+ax = gca(h);
 histogram(ax, playerCount);
 title(ax, ['Number of Players Present in a Given 30 Minute Interval (', methodName, ')']);
 xlabel(ax, 'Number of Players');
@@ -657,6 +713,37 @@ ylabel(ax, 'Count');
 annotation('textbox',[0.75 0.75 0.005 0.005], 'String',['Mean = ', num2str(mean(playerCount))],'FitBoxToText','on');
 
 rootFilename = 'playersPerInterval';
+filename = fullfile(saveDir, [rootFilename, '.fig']);
+saveas(gcf, filename);
+filename = fullfile(saveDir, [rootFilename, '.png']);
+saveas(gcf, filename);
+
+% Machines Played Per Visit Hist
+rootFilename = 'machinesPlayedPerVisitHist';
+if ~strcmpi(methodName, 'real')
+    h = openfig(fullfile(realPlotsDir, rootFilename)); % make bin edges line up with real plot
+    ax = gca(h);
+    currhist = get(ax, 'Children');
+    binedges = currhist.BinEdges;
+else
+    binedges = [];
+end
+h = figure;
+h.Position(3) = 800;
+h.Position(4) = 660; 
+ax = gca(h);
+
+machinesPlayed = visits.machinesPlayed;
+numMachinesPlayed = cellfun(@length, machinesPlayed);
+
+if isempty(binedges)
+    histogram(ax, numMachinesPlayed, 0.5:1:max(numMachinesPlayed)+ 0.5);
+else
+    histogram(ax, numMachinesPlayed, binedges);
+end
+xlabel(ax, 'Number of Machines Played');
+ylabel(ax, 'Count');
+title(ax, ['Number of Machines Played Per Visit Histogram (', methodName, ')']);
 filename = fullfile(saveDir, [rootFilename, '.fig']);
 saveas(gcf, filename);
 filename = fullfile(saveDir, [rootFilename, '.png']);
