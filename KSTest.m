@@ -63,8 +63,10 @@ if weighted
     D_bar = D_bar./(10.^binMidpoints);
 end
 
-scrsz = get(0,'ScreenSize');
-h = figure('Position',scrsz);
+
+h = figure;
+h.Position(3) = 800;
+h.Position(4) = 660;
 plot(binMidpoints, D_bar, '.');
 xlabel(xlabels);
 ylabel('Difference in Frequency');
@@ -74,8 +76,9 @@ title(['Difference Between Distributions (', methodName, ' ', figName, ')']);
 saveas(h, fullfile(saveDir, ['frequencyDifference', figName, '.fig']));
 saveas(h, fullfile(saveDir, ['frequencyDifference', figName, '.png']));
 
-scrsz = get(0,'ScreenSize');
-h = figure('Position',scrsz);
+h = figure;
+h.Position(3) = 800;
+h.Position(4) = 660;
 hold on;
 plot(binMidpoints, F_r_real, 'r.');
 plot(binMidpoints, F_r, 'b.');
